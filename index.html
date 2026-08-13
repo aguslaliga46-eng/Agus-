@@ -14,11 +14,11 @@
 
     <!-- Header -->
     <header class="bg-slate-800 p-4 shadow-md text-center">
-        <h1 class="text-xl font-bold text-blue-400">WebRTC Video Call</h1>
+        <h1 class="text-xl font-bold text-blue-400">WebRTC Video Call (Mode 3G)</h1>
         <p id="status-text" class="text-sm text-slate-400">Status: Memuat kamera...</p>
     </header>
 
-    <!-- Konten Utama (Video Grid - Diubah jadi Persegi 4 / 1:1) -->
+    <!-- Konten Utama (Video Grid - Persegi 4 / 1:1) -->
     <main class="flex-1 p-4 max-w-2xl mx-auto w-full flex flex-col sm:flex-row gap-4 items-center justify-center">
         <!-- Video Lokal (Saya) -->
         <div class="relative w-48 h-48 sm:w-56 sm:h-56 bg-black rounded-2xl overflow-hidden shadow-lg border-2 border-slate-700 flex items-center justify-center">
@@ -86,19 +86,19 @@
             return 'room-' + result + '-' + Date.now().toString(36);
         }
 
-        // 1. Ambil izin kamera dengan resolusi rendah untuk hemat data
+        // 1. Ambil izin kamera dengan resolusi sangat kecil (Ultra Low Resolution untuk jaringan 3G)
         async function initCamera() {
             statusText.innerText = "Status: Meminta izin kamera dan mikrofon...";
             try {
-                // Mengatur resolusi kecil (ideal untuk hemat kuota internet/data seluler)
+                // Resolusi diperkecil ke 160x120 dan 10 fps agar lancar di jaringan 3G / lambat
                 const constraints = {
-                    video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
+                    video: { width: { ideal: 160 }, height: { ideal: 120 }, frameRate: { ideal: 10 } },
                     audio: true
                 };
 
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = localStream;
-                statusText.innerText = "Status: Kamera siap. Klik 'Buat Ruangan' atau masukkan ID.";
+                statusText.innerText = "Status: Kamera siap (Mode 3G). Klik 'Buat Ruangan' atau masukkan ID.";
             } catch (error) {
                 console.warn('Gagal akses kamera langsung, mencoba ulang...', error);
                 statusText.innerText = "Status: Izinkan akses kamera/mikrofon di browser Anda!";
@@ -106,12 +106,12 @@
                 setTimeout(async () => {
                     try {
                         const constraints = {
-                            video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
+                            video: { width: { ideal: 160 }, height: { ideal: 120 }, frameRate: { ideal: 10 } },
                             audio: true
                         };
                         localStream = await navigator.mediaDevices.getUserMedia(constraints);
                         localVideo.srcObject = localStream;
-                        statusText.innerText = "Status: Kamera siap. Klik 'Buat Ruangan' atau masukkan ID.";
+                        statusText.innerText = "Status: Kamera siap (Mode 3G). Klik 'Buat Ruangan' atau masukkan ID.";
                     } catch (err) {
                         statusText.innerText = "Status: Gagal mengakses kamera. Periksa izin browser!";
                     }
