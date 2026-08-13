@@ -249,6 +249,13 @@
 
   initCamera();
 </script>
+
+<!-- Script Registrasi Service Worker untuk PWABuilder -->
+<script>
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('/pwabuilder-sw (1).js');
+  }
+</script>
+
 </body>
-  </html>
-  
+</html>
