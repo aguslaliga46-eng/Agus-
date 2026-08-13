@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Call Room (Ultra Mini 1:1)</title>
+  <title>Video Call Room (Fixed & Stable)</title>
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
@@ -15,18 +15,23 @@
     .room-control input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
     .room-control button { padding: 10px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
 
-    /* Tampilan Video Diperkecil Menjadi 90x90 Piksel */
-    .video-grid { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
+    /* Tampilan Video 90x90 */
+    .video-grid { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
     .video-wrapper { position: relative; width: 90px; height: 90px; background: #1e293b; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
     video { width: 100%; height: 100%; object-fit: cover; }
     .video-label { position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.6); color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 8px; z-index: 2; }
+
+    /* Tombol Kontrol di Bagian Bawah Video */
+    .media-controls { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+    .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border: none; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: 0.2s; }
+    .media-controls button.active { background: #ef4444; color: white; }
 
     .chat-box { border-top: 1px solid #e2e8f0; padding-top: 10px; }
     .chat-input { display: flex; gap: 8px; }
     .chat-input input { flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
     .chat-input button { padding: 8px 14px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
-    .chat-log { margin-top: 8px; height: 70px; overflow-y: auto; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 4px; }
-    .status-text { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 10px; }
+    .chat-log { margin-top: 8px; height: 60px; overflow-y: auto; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 4px; }
+    .status-text { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 8px; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -41,7 +46,7 @@
 
   <div class="status-text" id="statusText">Masukkan kode untuk mulai</div>
 
-  <!-- Tampilan Video Berjajar Ukuran 90x90 -->
+  <!-- Tampilan Video -->
   <div class="video-grid">
     <div class="video-wrapper">
       <video id="videoRemote" autoplay playsinline></video>
@@ -51,6 +56,13 @@
       <video id="videoLocal" autoplay muted playsinline></video>
       <span class="video-label">Anda</span>
     </div>
+  </div>
+
+  <!-- Tombol Kontrol Kamera & Audio -->
+  <div class="media-controls">
+    <button id="btnToggleCam" onclick="toggleCamera()">Matikan Video</button>
+    <button id="btnToggleMic" onclick="toggleAudio()">Matikan Audio</button>
+    <button onclick="switchCamera()">Putar Kamera</button>
   </div>
 
   <div class="chat-box">
@@ -64,8 +76,9 @@
 
 <script>
   let peer, localStream, activeCall, activeConnection;
+  let useFrontCamera = true;
+  let isSwitching = false;
 
-  // Konfigurasi Super Hemat Data (Resolusi 128x128, 7-8 fps)
   const lowDataConstraints = {
     video: { 
       width: { ideal: 128 }, 
@@ -80,20 +93,82 @@
   };
 
   async function initCamera() {
+    if (isSwitching) return;
+    isSwitching = true;
     try {
-      localStream = await navigator.mediaDevices.getUserMedia(lowDataConstraints);
+      const constraints = {
+        ...lowDataConstraints,
+        video: {
+          ...lowDataConstraints.video,
+          facingMode: useFrontCamera ? "user" : "environment"
+        }
+      };
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+
+      localStream = await navigator.mediaDevices.getUserMedia(constraints);
       document.getElementById('videoLocal').srcObject = localStream;
+      
+      // Perbarui stream video ke lawan bicara jika sedang menelepon
+      if (activeCall && activeCall.peerConnection) {
+        const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(localStream.getVideoTracks()[0]);
+        }
+      }
     } catch (err) {
-      alert("Izin kamera diperlukan!");
+      console.error("Gagal akses kamera:", err);
+      alert("Tidak dapat mengakses kamera/mikrofon.");
+    } finally {
+      isSwitching = false;
+    }
+  }
+
+  async function switchCamera() {
+    useFrontCamera = !useFrontCamera;
+    await initCamera();
+  }
+
+  function toggleCamera() {
+    if (!localStream) return;
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      const btn = document.getElementById('btnToggleCam');
+      if (videoTrack.enabled) {
+        btn.textContent = "Matikan Video";
+        btn.classList.remove('active');
+      } else {
+        btn.textContent = "Buka Video";
+        btn.classList.add('active');
+      }
+    }
+  }
+
+  function toggleAudio() {
+    if (!localStream) return;
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      const btn = document.getElementById('btnToggleMic');
+      if (audioTrack.enabled) {
+        btn.textContent = "Matikan Audio";
+        btn.classList.remove('active');
+      } else {
+        btn.textContent = "Buka Audio";
+        btn.classList.add('active');
+      }
     }
   }
 
   async function joinRoom() {
     const code = document.getElementById('roomInput').value.trim();
-    if (!code) return alert("Masukkan kode!");
+    if (!code) return alert("Masukkan kode room terlebih dahulu!");
     
     await initCamera();
-    document.getElementById('statusText').textContent = "Menghubungkan...";
+    document.getElementById('statusText').textContent = "Menghubungkan ke room...";
 
     if (peer) peer.destroy();
     
@@ -101,14 +176,27 @@
       config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
     });
 
-    peer.on('error', () => {
-      peer = new Peer({ config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] } });
-      peer.on('open', () => {
-        const call = peer.call("room_" + code, localStream);
-        handleCall(call);
-        activeConnection = peer.connect("room_" + code);
-        setupChat(activeConnection);
-      });
+    peer.on('error', (err) => {
+      // Jika ID room sudah dipakai, coba sambungkan sebagai klien
+      if (err.type === 'unavailable-id') {
+        const clientPeer = new Peer({
+          config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+        });
+        
+        clientPeer.on('open', () => {
+          peer = clientPeer;
+          const call = clientPeer.call("room_" + code, localStream);
+          handleCall(call);
+          activeConnection = clientPeer.connect("room_" + code);
+          setupChat(activeConnection);
+        });
+      } else {
+        document.getElementById('statusText').textContent = "Koneksi gagal, coba lagi.";
+      }
+    });
+
+    peer.on('open', () => {
+      document.getElementById('statusText').textContent = "Menunggu lawan bicara...";
     });
 
     peer.on('call', (call) => {
@@ -128,6 +216,12 @@
       document.getElementById('videoRemote').srcObject = stream;
       document.getElementById('statusText').textContent = "Terhubung!";
     });
+
+    // Menangani saat panggilan terputus di tengah jalan
+    call.on('close', () => {
+      document.getElementById('statusText').textContent = "Lawan bicara keluar.";
+      document.getElementById('videoRemote').srcObject = null;
+    });
   }
 
   function setupChat(conn) {
@@ -135,6 +229,11 @@
       const log = document.getElementById('chatLog');
       log.innerHTML += `<div>Teman: ${data}</div>`;
       log.scrollTop = log.scrollHeight;
+    });
+    
+    conn.on('close', () => {
+      const log = document.getElementById('chatLog');
+      log.innerHTML += `<div style="color: #ef4444;">Koneksi chat terputus.</div>`;
     });
   }
 
