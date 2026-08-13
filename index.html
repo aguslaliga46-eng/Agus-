@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Video Call Otomatis (3G Ready)</title>
+  <title>Aplikasi Video Call & Chat Real-time (3G Ready)</title>
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
@@ -109,7 +109,6 @@
   let activeConnection;
   let currentMode = 'global';
 
-  // Setting hemat data 3G
   const lowDataConstraints = {
     video: { width: { ideal: 176 }, height: { ideal: 144 }, frameRate: { ideal: 10, max: 15 } },
     audio: { echoCancellation: true, noiseSuppression: true }
@@ -138,7 +137,6 @@
 
     if (mode === 'global') {
       initCamera('videoGlobalLocal');
-      // Membuat peer acak untuk global
       peer = new Peer();
     } else {
       initCamera('videoCodeLocal');
@@ -174,15 +172,12 @@
     });
   }
 
-  // --- LOGIKA GLOBAL OTOMATIS (Menggunakan Public Room / ID Counter Sederhana) ---
   async function startGlobalMatch() {
     if (!peer) peer = new Peer();
     document.getElementById('globalStatus').textContent = 'Mencari partner global secara otomatis...';
     
-    // Generate nomor acak antara 1 sampai 50 untuk simulasi ruang antrean publik otomatis
     const randomQueueId = "global_user_room_" + Math.floor(Math.random() * 50);
     
-    // Coba hubungkan langsung ke ID antrean tersebut, jika gagal berarti kita host pertama
     setTimeout(() => {
       connectToTarget(randomQueueId, 'Global');
     }, 1000);
@@ -195,7 +190,6 @@
     startGlobalMatch();
   }
 
-  // --- LOGIKA KODE UNDANGAN ---
   function joinRoomCode() {
     const code = document.getElementById('roomInput').value.trim();
     if (!code) {
@@ -203,11 +197,10 @@
       return;
     }
 
-    // Buat peer dengan awalan tetap berdasarkan kode ruangan agar yang memasukkan kode sama langsung bertemu
     const fixedRoomId = "room_rahasia_" + code;
     
     if (peer) peer.destroy();
-    peer = new Peer(fixedRoomId); // Coba buat room
+    peer = new Peer(fixedRoomId);
 
     peer.on('open', (id) => {
       document.getElementById('codeStatus').textContent = 'Menunggu teman masuk ke kode: ' + code;
@@ -215,9 +208,8 @@
 
     peer.on('error', (err) => {
       if (err.type === 'unavailable-id') {
-        // Jika room sudah dibuat orang lain (artinya kita pihak kedua yang join)
         document.getElementById('codeStatus').textContent = 'Menghubungkan ke room...';
-        peer = new Peer(); // Buat ID baru untuk user kedua
+        peer = new Peer();
         peer.on('open', () => {
           connectToTarget(fixedRoomId, 'Code');
         });
@@ -271,7 +263,6 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  // Jalankan default saat pertama buka
   switchMode('global');
 </script>
 
