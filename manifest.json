@@ -1,13 +1,13 @@
-
 {
   "background_color": "#ffffff",
   "dir": "ltr",
   "display": "standalone",
-  "name": "Video call 1mb",
+  "name": "Videocall 1mb",
   "orientation": "any",
   "scope": "/",
-  "short_name": "Videocall1mb",
+  "short_name": "agusliga46-eng.github",
   "start_url": "/",
   "theme_color": "#ffffff",
-  "id": "Videocall1mb"
+  "id": "1vidiocall",
+  "description": "Aplikasi"
 }
