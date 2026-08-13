@@ -3,478 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Komunikasi Hemat Data</title>
+  <title>Aplikasi Video Call dengan Chat</title>
   <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --success: #10b981;
-      --danger: #ef4444;
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --text-color: #1e293b;
-      --border-color: #e2e8f0;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    .app-container {
-      width: 100%;
-      max-width: 550px;
-      background: var(--card-bg);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .app-header h2 {
-      font-size: 1.25rem;
-      color: var(--primary);
-      margin-bottom: 4px;
-    }
-
-    .app-header p {
-      font-size: 0.85rem;
-      color: #64748b;
-    }
-
-    .card-section {
-      background: #f1f5f9;
-      padding: 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .card-section h3 {
-      font-size: 0.95rem;
-      color: #334155;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    input[type="text"], input[type="file"] {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 0.9rem;
-      outline: none;
-      background: #fff;
-      transition: border-color 0.2s;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--primary);
-    }
-
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, opacity 0.2s;
-      white-space: nowrap;
-    }
-
-    .btn-primary { background-color: var(--primary); color: white; }
-    .btn-primary:hover { background-color: var(--primary-hover); }
-
-    .btn-warning { background-color: #f59e0b; color: white; }
-    .btn-warning:hover { background-color: #d97706; }
-
-    .btn-danger { background-color: var(--danger); color: white; }
-    .btn-danger:hover { background-color: #dc2626; }
-
-    /* Tombol Pintasan Kode Room */
-    #saved-codes-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .code-pill {
-      background: #e2e8f0;
-      color: #334155;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid #cbd5e1;
-      transition: all 0.2s;
-    }
-
-    .code-pill:hover {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-
-    .status-text {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #64748b;
-    }
-
-    /* Video Section */
-    .video-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    video {
-      width: 100%;
-      height: 140px;
-      background: #000;
-      border-radius: 6px;
-      object-fit: cover;
-    }
-
-    .video-controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    /* Chat Section */
-    #message-list {
-      height: 220px;
-      overflow-y: auto;
-      border: 1px solid var(--border-color);
-      padding: 12px;
-      border-radius: 6px;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .message-item {
-      padding: 8px 12px;
-      border-radius: 8px;
-      max-width: 80%;
-      font-size: 0.9rem;
-      word-wrap: break-word;
-    }
-
-    .message-item.text {
-      background: #e0e7ff;
-      color: #312e81;
-      align-self: flex-end;
-    }
-
-    .message-item.image-container {
-      background: #e0f2fe;
-      align-self: flex-end;
-      padding: 6px;
-    }
-
-    .message-item img {
-      max-width: 160px;
-      height: auto;
-      border-radius: 4px;
-      display: block;
-    }
-
-    .chat-input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .chat-bottom-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .file-input-wrapper {
-      flex: 1;
-      font-size: 0.85rem;
-    }
-
-    hr {
-      border: none;
-      border-top: 1px solid var(--border-color);
-    }
+    body { font-family: sans-serif; background: #f8fafc; padding: 20px; display: flex; justify-content: center; }
+    .app-container { width: 100%; max-width: 500px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .menu-box { display: flex; gap: 10px; margin-bottom: 20px; }
+    button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; transition: 0.3s; }
+    .btn-global { background: #4f46e5; color: white; }
+    .btn-code { background: #f59e0b; color: white; }
+    .page { display: none; }
+    .active { display: block; }
+    video { width: 100%; height: 200px; background: #000; border-radius: 8px; margin-top: 10px; object-fit: cover; }
+    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+    
+    /* Chat Minimalis Sebaris Tanpa History Kotak Besar */
+    .chat-box { margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; }
+    .chat-input-area { display: flex; gap: 8px; align-items: center; }
+    .chat-input-area input { margin: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
+    .chat-input-area button { margin: 0; padding: 10px 18px; font-size: 14px; flex: 0; background: #2563eb; color: white; border-radius: 6px; }
+    
+    /* Style untuk menampilkan pesan kecil di bawah */
+    .chat-log { margin-top: 8px; font-size: 13px; color: #334155; display: flex; flex-direction: column; gap: 4px; max-height: 80px; overflow-y: auto; }
   </style>
 </head>
 <body>
 
-  <div class="app-container">
-    <div class="app-header">
-      <h2>Aplikasi Komunikasi</h2>
-      <p>Terhubung, Video Call, dan Chat secara Hemat Data</p>
-    </div>
+<div class="app-container">
+  <h2>Pilih Mode Panggilan</h2>
+  <div class="menu-box">
+    <button class="btn-global" onclick="showPage('global')">Global</button>
+    <button class="btn-code" onclick="showPage('code')">Kode Undangan</button>
+  </div>
 
-    <!-- FITUR: PENYIMPANAN KODE ROOM (TINGGAL DIPENCET) -->
-    <div class="card-section">
-      <h3>🔑 Penyimpanan Kode Room</h3>
-      <div class="input-row">
-        <input type="text" id="room-code-input" placeholder="Ketik kode baru..." autocomplete="off">
-        <button id="saveCodeBtn" class="btn-warning">Simpan</button>
-        <button id="connectCodeBtn" class="btn-primary">Hubungkan</button>
+  <!-- Halaman Global -->
+  <div id="page-global" class="page">
+    <h3>🌍 Mode Global</h3>
+    <video id="videoGlobal" autoplay muted playsinline></video>
+    <button style="width:100%; margin-top:10px; background:#10b981; color:white;" onclick="startCam('videoGlobal')">Mulai Global</button>
+    
+    <!-- Chat Minimalis -->
+    <div class="chat-box">
+      <div class="chat-input-area">
+        <input type="text" id="msgInputGlobal" placeholder="Ketik pesan...">
+        <button onclick="sendMessage('Global')">Kirim</button>
       </div>
-      
-      <!-- Daftar Tombol Kode Tersimpan -->
-      <div>
-        <span style="font-size: 0.8rem; color: #64748b;">Riwayat Kode (Klik untuk pakai):</span>
-        <div id="saved-codes-container">
-          <!-- Tombol kode akan muncul otomatis di sini -->
-        </div>
-      </div>
-
-      <div id="connection-status" class="status-text">Status: Belum terhubung</div>
-    </div>
-
-    <!-- FITUR: VIDEO CALL -->
-    <div class="card-section">
-      <h3>📹 Video Call</h3>
-      <div class="video-grid">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
-      </div>
-      <div class="video-controls">
-        <button id="startCallBtn" class="btn-primary" style="flex:1;">Mulai Panggilan</button>
-        <button id="endCallBtn" class="btn-danger" style="flex:1;">Akhiri</button>
-      </div>
-    </div>
-
-    <hr>
-
-    <!-- FITUR: CHAT & KIRIM GAMBAR -->
-    <div class="card-section" style="background: #fff; border: none; padding: 0;">
-      <h3>💬 Chat & Kirim Gambar</h3>
-      <div id="message-list">
-        <!-- Riwayat pesan muncul di sini -->
-      </div>
-      
-      <div class="chat-input-group" style="margin-top: 10px;">
-        <input type="text" id="chat-input" placeholder="Tulis pesan..." autocomplete="off">
-        <div class="chat-bottom-row">
-          <input type="file" id="image-input" accept="image/*" class="file-input-wrapper">
-          <button id="send-btn" class="btn-primary">Kirim</button>
-        </div>
-      </div>
+      <div id="chatLogGlobal" class="chat-log"></div>
     </div>
   </div>
 
-  <script>
-    // --- SKRIP PENYIMPANAN KODE & KONEKSI ---
-    const roomCodeInput = document.getElementById('room-code-input');
-    const saveCodeBtn = document.getElementById('saveCodeBtn');
-    const connectCodeBtn = document.getElementById('connectCodeBtn');
-    const connectionStatus = document.getElementById('connection-status');
-    const savedCodesContainer = document.getElementById('saved-codes-container');
+  <!-- Halaman Kode Undangan -->
+  <div id="page-code" class="page">
+    <h3>🔑 Mode Kode Undangan</h3>
+    <input type="text" id="roomInput" placeholder="Masukkan kode undangan...">
+    <video id="videoCode" autoplay muted playsinline></video>
+    <button style="width:100%; margin-top:10px; background:#10b981; color:white;" onclick="startCam('videoCode')">Gabung Room</button>
+    
+    <!-- Chat Minimalis -->
+    <div class="chat-box">
+      <div class="chat-input-area">
+        <input type="text" id="msgInputCode" placeholder="Ketik pesan...">
+        <button onclick="sendMessage('Code')">Kirim</button>
+      </div>
+      <div id="chatLogCode" class="chat-log"></div>
+    </div>
+  </div>
+</div>
 
-    // Fungsi mengambil daftar kode dari localStorage
-    function getSavedCodes() {
-      const codes = localStorage.getItem('my_room_codes');
-      return codes ? JSON.parse(codes) : [];
+<script>
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+  }
+
+  async function startCam(videoId) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById(videoId).srcObject = stream;
+    } catch (err) {
+      alert("Gagal akses kamera: " + err.message);
     }
+  }
 
-    // Fungsi menampilkan tombol pintasan kode
-    function renderSavedCodes() {
-      savedCodesContainer.innerHTML = '';
-      const codes = getSavedCodes();
-
-      if (codes.length === 0) {
-        savedCodesContainer.innerHTML = '<span style="font-size: 0.8rem; color: #94a3b8; font-style: italic;">Belum ada kode tersimpan</span>';
-        return;
-      }
-
-      codes.forEach(code => {
-        const pill = document.createElement('button');
-        pill.className = 'code-pill';
-        pill.textContent = code;
-        type = "button";
-        
-        // Tinggal dipencet untuk otomatis mengisi input dan terhubung
-        pill.addEventListener('click', () => {
-          roomCodeInput.value = code;
-          connectCodeBtn.click(); // Langsung eksekusi hubungkan
-        });
-
-        savedCodesContainer.appendChild(pill);
-      });
+  function sendMessage(type) {
+    const input = document.getElementById('msgInput' + type);
+    const log = document.getElementById('chatLog' + type);
+    if (input.value.trim() !== "") {
+      const p = document.createElement('div');
+      p.textContent = "Anda: " + input.value;
+      log.appendChild(p);
+      input.value = "";
+      log.scrollTop = log.scrollHeight;
     }
+  }
 
-    // Load saat aplikasi pertama dibuka
-    window.addEventListener('DOMContentLoaded', () => {
-      renderSavedCodes();
-    });
-
-    // Tombol Simpan Kode
-    saveCodeBtn.addEventListener('click', () => {
-      const code = roomCodeInput.value.trim();
-      if (!code) {
-        alert('Masukkan kode terlebih dahulu!');
-        return;
-      }
-
-      let codes = getSavedCodes();
-      // Masukkan jika belum ada di dalam daftar
-      if (!codes.includes(code)) {
-        codes.push(code);
-        localStorage.setItem('my_room_codes', JSON.stringify(codes));
-        renderSavedCodes();
-        alert(`Kode "${code}" berhasil disimpan ke riwayat!`);
-      } else {
-        alert('Kode ini sudah ada di daftar penyimpanan.');
-      }
-    });
-
-    // Tombol Hubungkan
-    connectCodeBtn.addEventListener('click', () => {
-      const code = roomCodeInput.value.trim();
-      if (code) {
-        connectionStatus.textContent = `Status: Terhubung ke Room [${code}]`;
-        connectionStatus.style.color = '#10b981';
-      } else {
-        alert('Silakan masukkan atau pilih kode terlebih dahulu!');
-      }
-    });
-
-
-    // --- SKRIP VIDEO CALL ---
-    const localVideo = document.getElementById('localVideo');
-    const startCallBtn = document.getElementById('startCallBtn');
-    const endCallBtn = document.getElementById('endCallBtn');
-    let localStream = null;
-
-    startCallBtn.addEventListener('click', async () => {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 640, height: 480, frameRate: 15 }, 
-          audio: true 
-        });
-        localVideo.srcObject = localStream;
-        alert('Video Call dimulai (Kamera aktif)');
-      } catch (error) {
-        alert('Gagal mengakses kamera/mikrofon: ' + error.message);
-      }
-    });
-
-    endCallBtn.addEventListener('click', () => {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localVideo.srcObject = null;
-        alert('Video Call diakhiri');
-      }
-    });
-
-
-    // --- SKRIP CHAT & KOMPRESI GAMBAR (HEMAT DATA) ---
-    const messageList = document.getElementById('message-list');
-    const chatInput = document.getElementById('chat-input');
-    const imageInput = document.getElementById('image-input');
-    const sendBtn = document.getElementById('send-btn');
-
-    function compressAndResizeImage(file, callback) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob((blob) => {
-            callback(blob);
-          }, 'image/jpeg', 0.7);
-        };
-      };
-    }
-
-    function appendMessage(type, content) {
-      const div = document.createElement('div');
-      
-      if (type === 'text') {
-        div.className = 'message-item text';
-        div.textContent = content;
-      } else if (type === 'image') {
-        div.className = 'message-item image-container';
-        const img = document.createElement('img');
-        img.src = content;
-        div.appendChild(img);
-      }
-
-      messageList.appendChild(div);
-      messageList.scrollTop = messageList.scrollHeight;
-    }
-
-    sendBtn.addEventListener('click', () => {
-      const text = chatInput.value.trim();
-      const imageFile = imageInput.files[0];
-
-      if (text) {
-        appendMessage('text', text);
-        chatInput.value = '';
-      }
-
-      if (imageFile) {
-        compressAndResizeImage(imageFile, (compressedBlob) => {
-          const imageUrl = URL.createObjectURL(compressedBlob);
-          appendMessage('image', imageUrl);
-        });
-        imageInput.value = '';
-      }
-    });
-
-    chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendBtn.click();
-      }
-    });
-  </script>
+  showPage('global');
+</script>
 
 </body>
 </html>
