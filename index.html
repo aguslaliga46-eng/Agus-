@@ -30,9 +30,14 @@
 
     /* Grid Video & Audio */
     .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-    .video-wrapper { position: relative; width: 100%; height: 180px; background: #000; border-radius: 8px; overflow: hidden; }
+    .video-wrapper { position: relative; width: 100%; height: 180px; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    .video-label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .video-label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; z-index: 2; }
+
+    /* Loading Spinner Overlay */
+    .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; flex-direction: column; align-items: center; justify-content: center; color: white; font-size: 12px; z-index: 3; }
+    .spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 6px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     /* Chat Minimalis Sebaris */
     .chat-box { margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; }
@@ -55,7 +60,7 @@
     <button id="btnTabGlobal" onclick="switchTab('global')">Global Random</button>
   </div>
 
-  <!-- BAGIAN 1: ROOM KODE (TIDAK DIUBAH DARI ASLINYA) -->
+  <!-- BAGIAN 1: ROOM KODE -->
   <div id="sectionRoom" class="page-section active-page">
     <div class="room-control">
       <input type="text" id="roomInput" placeholder="Masukkan kode room...">
@@ -67,6 +72,10 @@
     <div class="video-grid">
       <div class="video-wrapper">
         <video id="videoRemoteRoom" autoplay playsinline></video>
+        <div class="loading-overlay" id="loadingRoom">
+          <div class="spinner"></div>
+          <span>Menghubungkan...</span>
+        </div>
         <span class="video-label">Lawan Bicara</span>
       </div>
       <div class="video-wrapper">
@@ -84,7 +93,7 @@
     </div>
   </div>
 
-  <!-- BAGIAN 2: GLOBAL RANDOM (BARU) -->
+  <!-- BAGIAN 2: GLOBAL RANDOM -->
   <div id="sectionGlobal" class="page-section">
     <button class="btn-global-action" id="btnStartGlobal" onclick="startGlobalMatch()">Mulai Cari Random</button>
     <button class="btn-global-skip" id="btnSkipGlobal" onclick="skipGlobalMatch()">Skip / Cari Lain</button>
@@ -94,6 +103,10 @@
     <div class="video-grid">
       <div class="video-wrapper">
         <video id="videoRemoteGlobal" autoplay playsinline></video>
+        <div class="loading-overlay" id="loadingGlobal">
+          <div class="spinner"></div>
+          <span>Mencari cepat...</span>
+        </div>
         <span class="video-label">Lawan Bicara</span>
       </div>
       <div class="video-wrapper">
@@ -120,7 +133,6 @@
   let activeConnection;
   let currentTab = 'room';
 
-  // Pengaturan hemat data (3G ready: resolusi rendah 176x144, 10fps + peredam bising/gema audio)
   const lowDataConstraints = {
     video: { width: { ideal: 176 }, height: { ideal: 144 }, frameRate: { ideal: 10, max: 15 } },
     audio: { echoCancellation: true, noiseSuppression: true }
@@ -160,16 +172,18 @@
 
     if (tab === 'room') {
       initCamera('videoLocalRoom');
+      document.getElementById('loadingRoom').style.display = 'none';
     } else {
       initCamera('videoLocalGlobal');
       document.getElementById('videoRemoteGlobal').srcObject = null;
       document.getElementById('statusTextGlobal').textContent = "Tekan tombol cari untuk mulai mencari partner random";
       document.getElementById('btnStartGlobal').style.display = 'block';
       document.getElementById('btnSkipGlobal').style.display = 'none';
+      document.getElementById('loadingGlobal').style.display = 'none';
     }
   }
 
-  // --- LOGIKA ROOM KODE (ASLI) ---
+  // --- LOGIKA ROOM KODE ---
   async function joinRoom() {
     const code = document.getElementById('roomInput').value.trim();
     if (!code) {
@@ -179,6 +193,7 @@
 
     await initCamera('videoLocalRoom');
     document.getElementById('statusTextRoom').textContent = "Menghubungkan ke room: " + code + "...";
+    document.getElementById('loadingRoom').style.display = 'flex';
 
     if (peer) {
       peer.destroy();
@@ -200,6 +215,7 @@
         });
       } else {
         alert("Terjadi kesalahan: " + err.type);
+        document.getElementById('loadingRoom').style.display = 'none';
       }
     });
 
@@ -209,6 +225,7 @@
       call.on('stream', (remoteStream) => {
         document.getElementById('videoRemoteRoom').srcObject = remoteStream;
         document.getElementById('statusTextRoom').textContent = "Berhasil terhubung dengan Lawan Bicara!";
+        document.getElementById('loadingRoom').style.display = 'none';
       });
     });
 
@@ -227,6 +244,7 @@
       call.on('stream', (remoteStream) => {
         document.getElementById('videoRemoteRoom').srcObject = remoteStream;
         document.getElementById('statusTextRoom').textContent = "Berhasil terhubung dengan Lawan Bicara!";
+        document.getElementById('loadingRoom').style.display = 'none';
       });
     }
 
@@ -260,22 +278,24 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  // --- LOGIKA GLOBAL RANDOM (BARU) ---
+  // --- LOGIKA GLOBAL RANDOM (DIPERCEPAT) ---
   async function startGlobalMatch() {
     await initCamera('videoLocalGlobal');
-    document.getElementById('statusTextGlobal').textContent = "Mencari partner random di jaringan publik...";
+    document.getElementById('statusTextGlobal').textContent = "Mencari partner random dengan cepat...";
+    document.getElementById('loadingGlobal').style.display = 'flex';
     
     if (peer) {
       peer.destroy();
     }
 
-    const randomId = "global_random_" + Math.floor(Math.random() * 10000);
+    // Mempercepat rentang acak dari 10.000 menjadi 250 agar pencarian langsung instan bertemu
+    const randomId = "global_random_fast_" + Math.floor(Math.random() * 250);
     peer = new Peer(randomId);
 
     peer.on('open', (id) => {
-      let targetNumber = Math.floor(Math.random() * 10000);
-      let targetId = "global_random_" + targetNumber;
-      if (targetId === id) targetId = "global_random_1";
+      let targetNumber = Math.floor(Math.random() * 250);
+      let targetId = "global_random_fast_" + targetNumber;
+      if (targetId === id) targetId = "global_random_fast_0";
 
       connectToGlobalPartner(targetId);
     });
@@ -286,6 +306,7 @@
       call.on('stream', (remoteStream) => {
         document.getElementById('videoRemoteGlobal').srcObject = remoteStream;
         document.getElementById('statusTextGlobal').textContent = "Terhubung dengan Lawan Bicara Random!";
+        document.getElementById('loadingGlobal').style.display = 'none';
         document.getElementById('btnStartGlobal').style.display = 'none';
         document.getElementById('btnSkipGlobal').style.display = 'block';
       });
@@ -306,6 +327,7 @@
       call.on('stream', (remoteStream) => {
         document.getElementById('videoRemoteGlobal').srcObject = remoteStream;
         document.getElementById('statusTextGlobal').textContent = "Terhubung dengan Lawan Bicara Random!";
+        document.getElementById('loadingGlobal').style.display = 'none';
         document.getElementById('btnStartGlobal').style.display = 'none';
         document.getElementById('btnSkipGlobal').style.display = 'block';
       });
@@ -348,9 +370,9 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  // Inisialisasi awal saat halaman dibuka
   initCamera('videoLocalRoom');
 </script>
 
 </body>
-</html>
+  </html>
+  
