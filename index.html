@@ -18,18 +18,18 @@
         <p id="status-text" class="text-sm text-slate-400">Status: Memuat kamera...</p>
     </header>
 
-    <!-- Konten Utama (Video Grid) -->
-    <main class="flex-1 p-4 max-w-6xl mx-auto w-full flex flex-col md:flex-row gap-4 items-center justify-center">
+    <!-- Konten Utama (Video Grid - Diubah jadi Persegi 4 / 1:1) -->
+    <main class="flex-1 p-4 max-w-2xl mx-auto w-full flex flex-col sm:flex-row gap-4 items-center justify-center">
         <!-- Video Lokal (Saya) -->
-        <div class="relative w-full md:w-1/2 bg-black rounded-xl overflow-hidden shadow-lg aspect-video flex items-center justify-center">
+        <div class="relative w-48 h-48 sm:w-56 sm:h-56 bg-black rounded-2xl overflow-hidden shadow-lg border-2 border-slate-700 flex items-center justify-center">
             <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
-            <span class="absolute bottom-3 left-3 bg-black/60 px-3 py-1 rounded-md text-xs">Anda</span>
+            <span class="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px]">Anda</span>
         </div>
 
         <!-- Video Remote (Lawan Bicara) -->
-        <div class="relative w-full md:w-1/2 bg-black rounded-xl overflow-hidden shadow-lg aspect-video flex items-center justify-center">
+        <div class="relative w-48 h-48 sm:w-56 sm:h-56 bg-black rounded-2xl overflow-hidden shadow-lg border-2 border-slate-700 flex items-center justify-center">
             <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
-            <span id="remote-label" class="absolute bottom-3 left-3 bg-black/60 px-3 py-1 rounded-md text-xs">Menunggu Lawan Bicara...</span>
+            <span id="remote-label" class="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px]">Menunggu...</span>
         </div>
     </main>
 
@@ -86,21 +86,30 @@
             return 'room-' + result + '-' + Date.now().toString(36);
         }
 
-        // 1. Ambil izin kamera dan mikrofon dengan penanganan aman & otomatis
+        // 1. Ambil izin kamera dengan resolusi rendah untuk hemat data
         async function initCamera() {
             statusText.innerText = "Status: Meminta izin kamera dan mikrofon...";
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                // Mengatur resolusi kecil (ideal untuk hemat kuota internet/data seluler)
+                const constraints = {
+                    video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
+                    audio: true
+                };
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = localStream;
                 statusText.innerText = "Status: Kamera siap. Klik 'Buat Ruangan' atau masukkan ID.";
             } catch (error) {
                 console.warn('Gagal akses kamera langsung, mencoba ulang...', error);
                 statusText.innerText = "Status: Izinkan akses kamera/mikrofon di browser Anda!";
                 
-                // Coba sekali lagi otomatis setelah 1.5 detik (mengatasi jeda izin browser)
                 setTimeout(async () => {
                     try {
-                        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                        const constraints = {
+                            video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15 } },
+                            audio: true
+                        };
+                        localStream = await navigator.mediaDevices.getUserMedia(constraints);
                         localVideo.srcObject = localStream;
                         statusText.innerText = "Status: Kamera siap. Klik 'Buat Ruangan' atau masukkan ID.";
                     } catch (err) {
