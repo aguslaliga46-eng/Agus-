@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Video Call dengan Chat</title>
+  <title>Aplikasi Video Call & Chat Hemat Data (3G Ready)</title>
   <style>
     body { font-family: sans-serif; background: #f8fafc; padding: 20px; display: flex; justify-content: center; }
     .app-container { width: 100%; max-width: 500px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -14,7 +14,7 @@
     .page { display: none; }
     .active { display: block; }
 
-    /* Grid Video (Lawan Bicara & Kamera Anda) */
+    /* Grid Video & Audio Hemat Data */
     .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
     .video-wrapper { position: relative; width: 100%; height: 180px; background: #000; border-radius: 8px; overflow: hidden; }
     video { width: 100%; height: 100%; object-fit: cover; }
@@ -44,7 +44,6 @@
   <div id="page-global" class="page">
     <h3>🌍 Mode Global</h3>
     
-    <!-- Video Lawan Bicara & Kamera Anda -->
     <div class="video-grid">
       <div class="video-wrapper">
         <video id="videoGlobalRemote" autoplay playsinline></video>
@@ -58,7 +57,6 @@
 
     <button style="width:100%; margin-top:10px; background:#10b981; color:white;" onclick="startCam('videoGlobalLocal')">Mulai Global</button>
     
-    <!-- Chat Minimalis -->
     <div class="chat-box">
       <div class="chat-input-area">
         <input type="text" id="msgInputGlobal" placeholder="Ketik pesan...">
@@ -73,7 +71,6 @@
     <h3>🔑 Mode Kode Undangan</h3>
     <input type="text" id="roomInput" placeholder="Masukkan kode undangan...">
     
-    <!-- Video Lawan Bicara & Kamera Anda -->
     <div class="video-grid">
       <div class="video-wrapper">
         <video id="videoCodeRemote" autoplay playsinline></video>
@@ -87,7 +84,6 @@
 
     <button style="width:100%; margin-top:10px; background:#10b981; color:white;" onclick="startCam('videoCodeLocal')">Gabung Room</button>
     
-    <!-- Chat Minimalis -->
     <div class="chat-box">
       <div class="chat-input-area">
         <input type="text" id="msgInputCode" placeholder="Ketik pesan...">
@@ -104,12 +100,25 @@
     document.getElementById('page-' + page).classList.add('active');
   }
 
+  // Pengaturan resolusi rendah (176x144, 10fps) agar lancar di jaringan 3G & hemat kuota data
+  const lowDataConstraints = {
+    video: {
+      width: { ideal: 176 },
+      height: { ideal: 144 },
+      frameRate: { ideal: 10, max: 15 }
+    },
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true
+    }
+  };
+
   async function startCam(videoId) {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia(lowDataConstraints);
       document.getElementById(videoId).srcObject = stream;
     } catch (err) {
-      alert("Gagal akses kamera: " + err.message);
+      alert("Gagal akses kamera/audio: " + err.message);
     }
   }
 
