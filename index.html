@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Call Room (Mini Video 1:1)</title>
+  <title>Video Call Room (Ultra Mini 1:1)</title>
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
@@ -15,11 +15,11 @@
     .room-control input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
     .room-control button { padding: 10px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
 
-    /* Tampilan Video Diperkecil Ukurannya dengan Rasio 1:1 */
+    /* Tampilan Video Diperkecil Menjadi 90x90 Piksel */
     .video-grid { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
-    .video-wrapper { position: relative; width: 120px; height: 120px; background: #1e293b; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+    .video-wrapper { position: relative; width: 90px; height: 90px; background: #1e293b; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    .video-label { position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 4px; border-radius: 4px; font-size: 9px; z-index: 2; }
+    .video-label { position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.6); color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 8px; z-index: 2; }
 
     .chat-box { border-top: 1px solid #e2e8f0; padding-top: 10px; }
     .chat-input { display: flex; gap: 8px; }
@@ -41,7 +41,7 @@
 
   <div class="status-text" id="statusText">Masukkan kode untuk mulai</div>
 
-  <!-- Tampilan Video Berjajar dan Diperkecil (1:1) -->
+  <!-- Tampilan Video Berjajar Ukuran 90x90 -->
   <div class="video-grid">
     <div class="video-wrapper">
       <video id="videoRemote" autoplay playsinline></video>
@@ -65,9 +65,18 @@
 <script>
   let peer, localStream, activeCall, activeConnection;
 
+  // Konfigurasi Super Hemat Data (Resolusi 128x128, 7-8 fps)
   const lowDataConstraints = {
-    video: { width: { ideal: 160 }, height: { ideal: 160 }, frameRate: { ideal: 10 } },
-    audio: { echoCancellation: true, noiseSuppression: true }
+    video: { 
+      width: { ideal: 128 }, 
+      height: { ideal: 128 }, 
+      frameRate: { ideal: 7, max: 8 } 
+    },
+    audio: { 
+      echoCancellation: true, 
+      noiseSuppression: true,
+      sampleRate: 16000 
+    }
   };
 
   async function initCamera() {
