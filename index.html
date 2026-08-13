@@ -3,102 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Video Call & Chat Real-time (3G Ready)</title>
-  <!-- PeerJS Library -->
+  <title>Video Call Auto Connect (3G Ready)</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     body { font-family: sans-serif; background: #f8fafc; padding: 20px; display: flex; justify-content: center; }
     .app-container { width: 100%; max-width: 500px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .menu-box { display: flex; gap: 10px; margin-bottom: 20px; }
-    button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; transition: 0.3s; }
-    .btn-global { background: #4f46e5; color: white; }
-    .btn-code { background: #f59e0b; color: white; }
-    .page { display: none; }
-    .active { display: block; }
-
-    /* Grid Video */
+    h2 { text-align: center; color: #1e293b; }
+    
     .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
     .video-wrapper { position: relative; width: 100%; height: 180px; background: #000; border-radius: 8px; overflow: hidden; }
     video { width: 100%; height: 100%; object-fit: cover; }
     .video-label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-    input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-    
-    .btn-action { background: #10b981; color: white; width: 100%; margin-top: 10px; }
-    .btn-skip { background: #ef4444; color: white; width: 100%; margin-top: 6px; display: none; }
+    .btn-action { background: #10b981; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+    .btn-skip { background: #ef4444; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 8px; display: none; }
 
-    /* Chat */
     .chat-box { margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; }
     .chat-input-area { display: flex; gap: 8px; align-items: center; }
-    .chat-input-area input { margin: 0; flex: 1; padding: 10px 12px; font-size: 14px; }
-    .chat-input-area button { margin: 0; padding: 10px 18px; font-size: 14px; flex: 0; background: #2563eb; color: white; border-radius: 6px; }
+    .chat-input-area input { margin: 0; flex: 1; padding: 10px 12px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; }
+    .chat-input-area button { margin: 0; padding: 10px 18px; font-size: 14px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
     .chat-log { margin-top: 8px; font-size: 13px; color: #334155; display: flex; flex-direction: column; gap: 4px; max-height: 80px; overflow-y: auto; }
-    .status-text { font-size: 13px; color: #64748b; text-align: center; margin-top: 6px; }
+    .status-text { font-size: 13px; color: #64748b; text-align: center; margin-top: 10px; }
   </style>
 </head>
 <body>
 
 <div class="app-container">
-  <h2>Pilih Mode Panggilan</h2>
-  <div class="menu-box">
-    <button class="btn-global" onclick="switchMode('global')">Global Otomatis</button>
-    <button class="btn-code" onclick="switchMode('code')">Kode Undangan</button>
-  </div>
-
-  <!-- Halaman Global Otomatis -->
-  <div id="page-global" class="page">
-    <h3>🌍 Mode Global Otomatis</h3>
-    <div class="status-text" id="globalStatus">Tekan mulai untuk mencari partner secara otomatis</div>
-    
-    <div class="video-grid">
-      <div class="video-wrapper">
-        <video id="videoGlobalRemote" autoplay playsinline></video>
-        <span class="video-label">Lawan Bicara</span>
-      </div>
-      <div class="video-wrapper">
-        <video id="videoGlobalLocal" autoplay muted playsinline></video>
-        <span class="video-label">Anda</span>
-      </div>
+  <h2>Live Video Chat</h2>
+  <div class="status-text" id="statusText">Tekan tombol cari untuk mulai terhubung</div>
+  
+  <div class="video-grid">
+    <div class="video-wrapper">
+      <video id="videoRemote" autoplay playsinline></video>
+      <span class="video-label">Lawan Bicara</span>
     </div>
-
-    <button class="btn-action" id="btnStartGlobal" onclick="startGlobalMatch()">Mulai Cari / Hubungkan</button>
-    <button class="btn-skip" id="btnSkipGlobal" onclick="skipGlobalMatch()">Skip / Cari Lain</button>
-    
-    <div class="chat-box">
-      <div class="chat-input-area">
-        <input type="text" id="msgInputGlobal" placeholder="Ketik pesan...">
-        <button onclick="sendMessage('Global')">Kirim</button>
-      </div>
-      <div id="chatLogGlobal" class="chat-log"></div>
+    <div class="video-wrapper">
+      <video id="videoLocal" autoplay muted playsinline></video>
+      <span class="video-label">Anda</span>
     </div>
   </div>
 
-  <!-- Halaman Kode Undangan -->
-  <div id="page-code" class="page">
-    <h3>🔑 Mode Kode Undangan</h3>
-    <div class="status-text" id="codeStatus">Masukkan kode yang sama dengan teman Anda</div>
-    <input type="text" id="roomInput" placeholder="Contoh: kodedamai123">
-    
-    <div class="video-grid">
-      <div class="video-wrapper">
-        <video id="videoCodeRemote" autoplay playsinline></video>
-        <span class="video-label">Lawan Bicara</span>
-      </div>
-      <div class="video-wrapper">
-        <video id="videoCodeLocal" autoplay muted playsinline></video>
-        <span class="video-label">Anda</span>
-      </div>
+  <button class="btn-action" id="btnSearch" onclick="startAutoMatch()">Cari Partner Otomatis</button>
+  <button class="btn-skip" id="btnSkip" onclick="skipAndSearch()">Skip / Cari Lain</button>
+  
+  <div class="chat-box">
+    <div class="chat-input-area">
+      <input type="text" id="msgInput" placeholder="Ketik pesan...">
+      <button onclick="sendMessage()">Kirim</button>
     </div>
-
-    <button class="btn-action" onclick="joinRoomCode()">Masuk & Hubungkan Room</button>
-    
-    <div class="chat-box">
-      <div class="chat-input-area">
-        <input type="text" id="msgInputCode" placeholder="Ketik pesan...">
-        <button onclick="sendMessage('Code')">Kirim</button>
-      </div>
-      <div id="chatLogCode" class="chat-log"></div>
-    </div>
+    <div id="chatLog" class="chat-log"></div>
   </div>
 </div>
 
@@ -107,147 +60,104 @@
   let localStream;
   let activeCall;
   let activeConnection;
-  let currentMode = 'global';
 
   const lowDataConstraints = {
     video: { width: { ideal: 176 }, height: { ideal: 144 }, frameRate: { ideal: 10, max: 15 } },
     audio: { echoCancellation: true, noiseSuppression: true }
   };
 
-  async function initCamera(localVideoId) {
+  async function initCam() {
     if (!localStream) {
       try {
         localStream = await navigator.mediaDevices.getUserMedia(lowDataConstraints);
-        document.getElementById(localVideoId).srcObject = localStream;
+        document.getElementById('videoLocal').srcObject = localStream;
       } catch (err) {
-        alert("Gagal mengakses kamera/audio: " + err.message);
+        alert("Gagal akses kamera/audio: " + err.message);
       }
     }
   }
 
-  function switchMode(mode) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + mode).classList.add('active');
-    currentMode = mode;
+  async function startAutoMatch() {
+    await initCam();
+    document.getElementById('statusText').textContent = "Mencari partner di jaringan publik...";
     
     if (peer) {
       peer.destroy();
-      peer = null;
     }
 
-    if (mode === 'global') {
-      initCamera('videoGlobalLocal');
-      peer = new Peer();
-    } else {
-      initCamera('videoCodeLocal');
-    }
+    // Buat ID acak dengan awalan publik
+    const randomId = "public_match_" + Math.floor(Math.random() * 10000);
+    peer = new Peer(randomId);
 
-    setupPeerListeners();
-  }
+    peer.on('open', (id) => {
+      // Coba tembak partner dengan angka acak di rentang yang sama
+      let targetNumber = Math.floor(Math.random() * 10000);
+      let targetId = "public_match_" + targetNumber;
+      
+      if (targetId === id) targetId = "public_match_1"; // Hindari menelepon diri sendiri
 
-  function setupPeerListeners() {
-    if (!peer) return;
+      connectToPartner(targetId);
+    });
 
     peer.on('call', (call) => {
       activeCall = call;
       call.answer(localStream);
       call.on('stream', (remoteStream) => {
-        const remoteVideoId = currentMode === 'global' ? 'videoGlobalRemote' : 'videoCodeRemote';
-        document.getElementById(remoteVideoId).srcObject = remoteStream;
-        if (currentMode === 'global') {
-          document.getElementById('globalStatus').textContent = 'Terhubung dengan Lawan Bicara!';
-          document.getElementById('btnStartGlobal').style.display = 'none';
-          document.getElementById('btnSkipGlobal').style.display = 'block';
-        } else {
-          document.getElementById('codeStatus').textContent = 'Berhasil terhubung ke Room!';
-        }
+        document.getElementById('videoRemote').srcObject = remoteStream;
+        document.getElementById('statusText').textContent = "Terhubung dengan Lawan Bicara!";
+        document.getElementById('btnSearch').style.display = 'none';
+        document.getElementById('btnSkip').style.display = 'block';
       });
     });
 
     peer.on('connection', (conn) => {
       activeConnection = conn;
       conn.on('data', (data) => {
-        appendLog(currentMode === 'global' ? 'Global' : 'Code', "Teman: " + data);
+        appendLog("Teman: " + data);
       });
     });
   }
 
-  async function startGlobalMatch() {
-    if (!peer) peer = new Peer();
-    document.getElementById('globalStatus').textContent = 'Mencari partner global secara otomatis...';
-    
-    const randomQueueId = "global_user_room_" + Math.floor(Math.random() * 50);
-    
-    setTimeout(() => {
-      connectToTarget(randomQueueId, 'Global');
-    }, 1000);
-  }
-
-  function skipGlobalMatch() {
-    if (activeCall) activeCall.close();
-    if (activeConnection) activeConnection.close();
-    document.getElementById('videoGlobalRemote').srcObject = null;
-    startGlobalMatch();
-  }
-
-  function joinRoomCode() {
-    const code = document.getElementById('roomInput').value.trim();
-    if (!code) {
-      alert("Masukkan kode undangan terlebih dahulu!");
-      return;
-    }
-
-    const fixedRoomId = "room_rahasia_" + code;
-    
-    if (peer) peer.destroy();
-    peer = new Peer(fixedRoomId);
-
-    peer.on('open', (id) => {
-      document.getElementById('codeStatus').textContent = 'Menunggu teman masuk ke kode: ' + code;
-    });
-
-    peer.on('error', (err) => {
-      if (err.type === 'unavailable-id') {
-        document.getElementById('codeStatus').textContent = 'Menghubungkan ke room...';
-        peer = new Peer();
-        peer.on('open', () => {
-          connectToTarget(fixedRoomId, 'Code');
-        });
-      }
-    });
-
-    setupPeerListeners();
-  }
-
-  function connectToTarget(targetId, type) {
-    const remoteVideoId = type === 'Global' ? 'videoGlobalRemote' : 'videoCodeRemote';
-    
+  function connectToPartner(targetId) {
     const call = peer.call(targetId, localStream);
-    if(call) {
+    if (call) {
       activeCall = call;
       call.on('stream', (remoteStream) => {
-        document.getElementById(remoteVideoId).srcObject = remoteStream;
-        if (type === 'Global') {
-          document.getElementById('globalStatus').textContent = 'Terhubung dengan Lawan Bicara!';
-          document.getElementById('btnStartGlobal').style.display = 'none';
-          document.getElementById('btnSkipGlobal').style.display = 'block';
-        } else {
-          document.getElementById('codeStatus').textContent = 'Berhasil terhubung ke Room!';
-        }
+        document.getElementById('videoRemote').srcObject = remoteStream;
+        document.getElementById('statusText').textContent = "Terhubung dengan Lawan Bicara!";
+        document.getElementById('btnSearch').style.display = 'none';
+        document.getElementById('btnSkip').style.display = 'block';
+      });
+      call.on('close', () => {
+        resetConnectionState();
       });
     }
 
     activeConnection = peer.connect(targetId);
     activeConnection.on('data', (data) => {
-      appendLog(type, "Teman: " + data);
+      appendLog("Teman: " + data);
     });
   }
 
-  function sendMessage(type) {
-    const input = document.getElementById('msgInput' + type);
+  function skipAndSearch() {
+    if (activeCall) activeCall.close();
+    if (activeConnection) activeConnection.close();
+    document.getElementById('videoRemote').srcObject = null;
+    resetConnectionState();
+    startAutoMatch();
+  }
+
+  function resetConnectionState() {
+    document.getElementById('statusText').textContent = "Mencari partner baru...";
+    document.getElementById('btnSkip').style.display = 'none';
+    document.getElementById('btnSearch').style.display = 'block';
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
     const text = input.value.trim();
     if (text !== "") {
-      appendLog(type, "Anda: " + text);
+      appendLog("Anda: " + text);
       if (activeConnection && activeConnection.open) {
         activeConnection.send(text);
       }
@@ -255,15 +165,16 @@
     }
   }
 
-  function appendLog(type, text) {
-    const log = document.getElementById('chatLog' + type);
+  function appendLog(text) {
+    const log = document.getElementById('chatLog');
     const p = document.createElement('div');
     p.textContent = text;
     log.appendChild(p);
     log.scrollTop = log.scrollHeight;
   }
 
-  switchMode('global');
+  // Inisialisasi kamera awal
+  initCam();
 </script>
 
 </body>
