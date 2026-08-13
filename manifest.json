@@ -1,1 +1,13 @@
 
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Video call 1mb",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Videocall1mb",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "Videocall1mb"
+}
