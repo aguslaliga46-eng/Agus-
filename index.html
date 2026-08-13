@@ -3,9 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Video Call & Chat (Room & Global Random)</title>
+  <title>Aplikasi Video Call & Chat (Room & Global Random Firebase)</title>
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Firebase SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script>
+    // Ganti dengan konfigurasi Firebase Anda dari console.firebase.google.com
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
   <style>
     body { font-family: sans-serif; background: #f8fafc; padding: 20px; display: flex; justify-content: center; }
     .app-container { width: 100%; max-width: 500px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -93,7 +106,7 @@
     </div>
   </div>
 
-  <!-- BAGIAN 2: GLOBAL RANDOM -->
+  <!-- BAGIAN 2: GLOBAL RANDOM (DENGAN FIREBASE) -->
   <div id="sectionGlobal" class="page-section">
     <button class="btn-global-action" id="btnStartGlobal" onclick="startGlobalMatch()">Mulai Cari Random</button>
     <button class="btn-global-skip" id="btnSkipGlobal" onclick="skipGlobalMatch()">Skip / Cari Lain</button>
@@ -105,7 +118,7 @@
         <video id="videoRemoteGlobal" autoplay playsinline></video>
         <div class="loading-overlay" id="loadingGlobal">
           <div class="spinner"></div>
-          <span>Mencari cepat...</span>
+          <span>Mencari partner...</span>
         </div>
         <span class="video-label">Lawan Bicara</span>
       </div>
@@ -132,6 +145,7 @@
   let activeCall;
   let activeConnection;
   let currentTab = 'room';
+  let myGlobalId = null;
 
   const lowDataConstraints = {
     video: { width: { ideal: 176 }, height: { ideal: 144 }, frameRate: { ideal: 10, max: 15 } },
@@ -163,6 +177,10 @@
     if (activeConnection) {
       activeConnection.close();
       activeConnection = null;
+    }
+    if (myGlobalId) {
+      db.ref('queue/' + myGlobalId).remove();
+      myGlobalId = null;
     }
 
     document.getElementById('btnTabRoom').className = tab === 'room' ? 'active-mode' : '';
@@ -278,26 +296,48 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  // --- LOGIKA GLOBAL RANDOM (DIPERCEPAT) ---
+  // --- LOGIKA GLOBAL RANDOM (MENGGUNAKAN FIREBASE DATABASE) ---
   async function startGlobalMatch() {
     await initCamera('videoLocalGlobal');
-    document.getElementById('statusTextGlobal').textContent = "Mencari partner random dengan cepat...";
+    document.getElementById('statusTextGlobal').textContent = "Mencari partner random di server...";
     document.getElementById('loadingGlobal').style.display = 'flex';
     
     if (peer) {
       peer.destroy();
     }
 
-    // Mempercepat rentang acak dari 10.000 menjadi 250 agar pencarian langsung instan bertemu
-    const randomId = "global_random_fast_" + Math.floor(Math.random() * 250);
-    peer = new Peer(randomId);
+    peer = new Peer();
 
-    peer.on('open', (id) => {
-      let targetNumber = Math.floor(Math.random() * 250);
-      let targetId = "global_random_fast_" + targetNumber;
-      if (targetId === id) targetId = "global_random_fast_0";
+    peer.on('open', (myId) => {
+      myGlobalId = myId;
+      const queueRef = db.ref('queue');
 
-      connectToGlobalPartner(targetId);
+      // Cek antrean yang ada di Firebase
+      queueRef.once('value', (snapshot) => {
+        let foundPartner = null;
+        snapshot.forEach((child) => {
+          if (child.key !== myId) {
+            foundPartner = child.key;
+          }
+        });
+
+        if (foundPartner) {
+          // Jika ada partner di antrean, hubungkan langsung sebagai pemanggil
+          queueRef.child(foundPartner).remove();
+          connectToGlobalPartner(foundPartner);
+        } else {
+          // Jika kosong, masukkan diri ke antrean dan tunggu orang lain
+          queueRef.child(myId).set({ timestamp: Date.now() });
+
+          queueRef.on('child_added', (data) => {
+            if (data.key !== myId && !activeCall) {
+              queueRef.child(myId).remove();
+              queueRef.child(data.key).remove();
+              connectToGlobalPartner(data.key);
+            }
+          });
+        }
+      });
     });
 
     peer.on('call', (call) => {
@@ -321,6 +361,9 @@
   }
 
   function connectToGlobalPartner(targetId) {
+    if (myGlobalId) {
+      db.ref('queue/' + myGlobalId).remove();
+    }
     const call = peer.call(targetId, localStream);
     if (call) {
       activeCall = call;
@@ -342,6 +385,10 @@
   function skipGlobalMatch() {
     if (activeCall) activeCall.close();
     if (activeConnection) activeConnection.close();
+    if (myGlobalId) {
+      db.ref('queue/' + myGlobalId).remove();
+      myGlobalId = null;
+    }
     document.getElementById('videoRemoteGlobal').srcObject = null;
     startGlobalMatch();
   }
@@ -374,5 +421,4 @@
 </script>
 
 </body>
-  </html>
-  
+</html>
