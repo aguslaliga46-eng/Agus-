@@ -9,5 +9,17 @@
   "start_url": "/",
   "theme_color": "#ffffff",
   "id": "Videocall1mb",
-  "description": "Aplikasi video call ringan dan cepat."
+  "description": "Aplikasi video call ringan dan cepat.",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/aguslaliga46-eng/Agus-/main/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/aguslaliga46-eng/Agus-/main/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
