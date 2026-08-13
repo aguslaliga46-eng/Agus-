@@ -15,7 +15,7 @@
     <!-- Header -->
     <header class="bg-slate-800 p-4 shadow-md text-center">
         <h1 class="text-xl font-bold text-blue-400">WebRTC Video Call</h1>
-        <p id="status-text" class="text-sm text-slate-400">Status: Memuat...</p>
+        <p id="status-text" class="text-sm text-slate-400">Status: Memuat kamera...</p>
     </header>
 
     <!-- Konten Utama (Video Grid) -->
@@ -36,7 +36,7 @@
     <!-- Kontrol Panel -->
     <footer class="bg-slate-800 p-4 shadow-inner">
         <div class="max-w-xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3">
-            <input type="text" id="roomInput" placeholder="Masukkan ID Ruangan" class="px-4 py-2 rounded-lg bg-slate-700 text-white border border-slate-600 focus:outline-none focus:border-blue-500 w-full sm:w-auto flex-1">
+            <input type="text" id="roomInput" placeholder="Masukkan atau Buat ID Ruangan" class="px-4 py-2 rounded-lg bg-slate-700 text-white border border-slate-600 focus:outline-none focus:border-blue-500 w-full sm:w-auto flex-1">
             <button id="createBtn" class="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg font-medium transition w-full sm:w-auto">Buat Ruangan</button>
             <button id="joinBtn" class="bg-green-600 hover:bg-green-700 px-5 py-2 rounded-lg font-medium transition w-full sm:w-auto">Gabung Ruangan</button>
             <button id="hangupBtn" class="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg font-medium transition hidden w-full sm:w-auto">Keluar</button>
@@ -54,7 +54,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Konfigurasi STUN Server gratis dari Google untuk jalur koneksi WebRTC
+        // Konfigurasi STUN Server gratis dari Google
         const servers = {
             iceServers: [
                 { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
@@ -62,7 +62,7 @@
         };
 
         let pc;
-        let localStream;
+        let localStream = null;
         let remoteStream;
         let roomId = null;
 
@@ -75,42 +75,66 @@
         const statusText = document.getElementById('status-text');
         const remoteLabel = document.getElementById('remote-label');
 
-        // 1. Ambil izin kamera dan mikrofon saat halaman dimuat
+        // Fungsi untuk membuat string acak yang aman (tidak bisa ditebak)
+        function generateSecureRoomId() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            const length = 16;
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return 'room-' + result + '-' + Date.now().toString(36);
+        }
+
+        // 1. Ambil izin kamera dan mikrofon dengan penanganan aman & otomatis
         async function initCamera() {
+            statusText.innerText = "Status: Meminta izin kamera dan mikrofon...";
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 localVideo.srcObject = localStream;
-                statusText.innerText = "Status: Kamera siap. Silakan buat atau gabung ruangan.";
+                statusText.innerText = "Status: Kamera siap. Klik 'Buat Ruangan' atau masukkan ID.";
             } catch (error) {
-                console.error('Gagal mengakses media:', error);
-                statusText.innerText = "Status: Gagal mengakses kamera/mikrofon!";
+                console.warn('Gagal akses kamera langsung, mencoba ulang...', error);
+                statusText.innerText = "Status: Izinkan akses kamera/mikrofon di browser Anda!";
+                
+                // Coba sekali lagi otomatis setelah 1.5 detik (mengatasi jeda izin browser)
+                setTimeout(async () => {
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                        localVideo.srcObject = localStream;
+                        statusText.innerText = "Status: Kamera siap. Klik 'Buat Ruangan' atau masukkan ID.";
+                    } catch (err) {
+                        statusText.innerText = "Status: Gagal mengakses kamera. Periksa izin browser!";
+                    }
+                }, 1500);
             }
         }
 
         initCamera();
 
-        // 2. Buat Ruangan Baru (Caller)
+        // 2. Buat Ruangan Baru (Caller) dengan ID Acak yang Aman
         createBtn.onclick = async () => {
             if (!localStream) {
-                alert("Kamera belum siap!");
-                return;
+                await initCamera();
+                if (!localStream) {
+                    alert("Kamera belum siap! Pastikan Anda sudah memberikan izin akses kamera.");
+                    return;
+                }
             }
 
-            roomId = roomInput.value.trim() || Math.random().toString(36.substring(2, 8));
+            roomId = roomInput.value.trim() || generateSecureRoomId();
             roomInput.value = roomId;
             roomInput.disabled = true;
             createBtn.disabled = true;
             joinBtn.disabled = true;
             hangupBtn.classList.remove('hidden');
 
-            statusText.innerText = `Status: Membuat ruangan (${roomId})...`;
+            statusText.innerText = `Status: Ruangan dibuat. Salin ID untuk dibagikan.`;
 
             pc = new RTCPeerConnection(servers);
 
-            // Tambahkan track lokal ke PeerConnection
             localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-            // Siapkan penampung video remote
             remoteStream = new MediaStream();
             remoteVideo.srcObject = remoteStream;
             pc.ontrack = event => {
@@ -124,14 +148,12 @@
             const callerCandidatesRef = roomRef.child('callerCandidates');
             const calleeCandidatesRef = roomRef.child('calleeCandidates');
 
-            // Kumpulkan ICE candidates
             pc.onicecandidate = event => {
                 if (event.candidate) {
                     callerCandidatesRef.push(event.candidate.toJSON());
                 }
             };
 
-            // Buat Offer
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
@@ -143,9 +165,7 @@
             };
 
             await roomRef.set(roomWithOffer);
-            statusText.innerText = `Status: Menunggu partisipan lain bergabung di ID: ${roomId}`;
 
-            // Dengarkan jawaban (answer) dari callee
             roomRef.on('value', async snapshot => {
                 const data = snapshot.val();
                 if (!pc.currentRemoteDescription && data && data.answer) {
@@ -155,7 +175,6 @@
                 }
             });
 
-            // Dengarkan ICE candidates dari callee
             calleeCandidatesRef.on('child_added', snapshot => {
                 const candidate = new RTCIceCandidate(snapshot.val());
                 pc.addIceCandidate(candidate);
@@ -170,8 +189,11 @@
                 return;
             }
             if (!localStream) {
-                alert("Kamera belum siap!");
-                return;
+                await initCamera();
+                if (!localStream) {
+                    alert("Kamera belum siap! Pastikan Anda sudah memberikan izin akses kamera.");
+                    return;
+                }
             }
 
             roomInput.disabled = true;
@@ -179,7 +201,7 @@
             joinBtn.disabled = true;
             hangupBtn.classList.remove('hidden');
 
-            statusText.innerText = `Status: Bergabung ke ruangan ${roomId}...`;
+            statusText.innerText = `Status: Bergabung ke ruangan...`;
 
             pc = new RTCPeerConnection(servers);
 
@@ -204,11 +226,10 @@
                 }
             };
 
-            // Ambil data offer dari database
             const roomSnapshot = await roomRef.once('value');
             const roomData = roomSnapshot.val();
             if (!roomData) {
-                alert("Ruangan tidak ditemukan!");
+                alert("Ruangan tidak ditemukan atau sudah ditutup!");
                 window.location.reload();
                 return;
             }
@@ -216,7 +237,6 @@
             const offer = roomData.offer;
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-            // Buat Answer
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
@@ -229,7 +249,6 @@
 
             statusText.innerText = "Status: Terhubung!";
 
-            // Dengarkan ICE candidates dari caller
             callerCandidatesRef.on('child_added', snapshot => {
                 const candidate = new RTCIceCandidate(snapshot.val());
                 pc.addIceCandidate(candidate);
