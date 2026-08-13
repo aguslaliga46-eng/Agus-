@@ -2,21 +2,18 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Video Call Room (WebView Ready & Stable)</title>
   
-  <!-- Link Manifest untuk PWABuilder / APK -->
-  <link rel="manifest" href="./manifest.json">
-
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 15px; display: flex; justify-content: center; }
-    .app-container { width: 100%; max-width: 360px; background: #fff; padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 15px; display: flex; justify-content: center; margin: 0; }
+    .app-container { width: 100%; max-width: 360px; background: #fff; padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
     h2 { text-align: center; color: #0f172a; font-size: 18px; margin: 0 0 12px 0; }
     
     .room-control { display: flex; gap: 8px; margin-bottom: 12px; }
-    .room-control input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+    .room-control input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
     .room-control button { padding: 10px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
 
     /* Tampilan Video 90x90 */
@@ -32,7 +29,7 @@
 
     .chat-box { border-top: 1px solid #e2e8f0; padding-top: 10px; }
     .chat-input { display: flex; gap: 8px; }
-    .chat-input input { flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+    .chat-input input { flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; }
     .chat-input button { padding: 8px 14px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
     .chat-log { margin-top: 8px; height: 60px; overflow-y: auto; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 4px; }
     .status-text { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 8px; font-weight: 500; }
@@ -48,7 +45,7 @@
     <button onclick="joinRoom()">Masuk</button>
   </div>
 
-  <div class="status-text" id="statusText">Masukkan kode untuk mulai</div>
+  <div class="status-text" id="statusText">Ketuk 'Masuk' untuk aktifkan izin & kamera</div>
 
   <!-- Tampilan Video -->
   <div class="video-grid">
@@ -112,6 +109,7 @@
         localStream.getTracks().forEach(track => track.stop());
       }
 
+      // Di WebView Android, getUserMedia wajib dipicu dari interaksi pengguna (tombol)
       localStream = await navigator.mediaDevices.getUserMedia(constraints);
       document.getElementById('videoLocal').srcObject = localStream;
       
@@ -121,9 +119,10 @@
           sender.replaceTrack(localStream.getVideoTracks()[0]);
         }
       }
+      document.getElementById('statusText').textContent = "Kamera aktif, siap terhubung.";
     } catch (err) {
       console.error("Gagal akses kamera:", err);
-      document.getElementById('statusText').textContent = "Izin kamera ditolak / tidak didukung WebView.";
+      document.getElementById('statusText').textContent = "Izin kamera ditolak / blokir WebView.";
     } finally {
       isSwitching = false;
     }
@@ -170,7 +169,10 @@
     const code = document.getElementById('roomInput').value.trim();
     if (!code) return alert("Masukkan kode room terlebih dahulu!");
     
+    // Inisialisasi kamera langsung dipicu saat tombol "Masuk" ditekan (Sangat penting untuk WebView)
     await initCamera();
+    if (!localStream) return;
+
     document.getElementById('statusText').textContent = "Menghubungkan ke room...";
 
     if (peer) peer.destroy();
@@ -245,15 +247,6 @@
       document.getElementById('chatLog').innerHTML += `<div>Anda: ${input.value}</div>`;
       input.value = "";
     }
-  }
-
-  initCamera();
-</script>
-
-<!-- Script Registrasi Service Worker untuk PWABuilder -->
-<script>
-  if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('/pwabuilder-sw (1).js');
   }
 </script>
 
