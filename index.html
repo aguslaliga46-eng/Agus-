@@ -71,6 +71,10 @@
     .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border-radius: 6px; font-size: 11px; font-weight: normal; }
     .media-controls button.active { background: #ef4444; color: white; }
 
+    /* Mode Hemat Data Toggle Bar */
+    .data-saver-bar { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 12px; color: #334155; }
+    .data-saver-bar input { flex: none; width: auto; cursor: pointer; }
+
     .call-action-controls { display: flex; gap: 8px; margin-bottom: 12px; }
     .call-action-controls button { flex: 1; }
 
@@ -154,6 +158,12 @@
       <div id="friendsListBox" class="list-box">
         <div style="color: #94a3b8; text-align: center;">Belum ada teman</div>
       </div>
+    </div>
+
+    <!-- Opsi Mode Hemat Data 3G -->
+    <div class="data-saver-bar">
+      <label for="chkDataSaver"><b>Mode Hemat Data (3G / Lambat)</b></label>
+      <input type="checkbox" id="chkDataSaver" checked>
     </div>
 
     <!-- Tampilan Video Call -->
@@ -244,7 +254,6 @@
     }
   }
 
-  // Menjalankan inisialisasi setelah DOM benar-benar siap
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAll);
   } else {
@@ -278,34 +287,22 @@
     }
 
     const btnRegisterEl = document.getElementById('btnRegister');
-    if (btnRegisterEl) {
-      btnRegisterEl.onclick = registerUser;
-    }
+    if (btnRegisterEl) btnRegisterEl.onclick = registerUser;
 
     const btnLoginEl = document.getElementById('btnLogin');
-    if (btnLoginEl) {
-      btnLoginEl.onclick = loginUser;
-    }
+    if (btnLoginEl) btnLoginEl.onclick = loginUser;
 
     const btnLogoutEl = document.getElementById('btnLogout');
-    if (btnLogoutEl) {
-      btnLogoutEl.onclick = logoutUser;
-    }
+    if (btnLogoutEl) btnLogoutEl.onclick = logoutUser;
 
     const btnAddFriendEl = document.getElementById('btnAddFriend');
-    if (btnAddFriendEl) {
-      btnAddFriendEl.onclick = sendFriendRequest;
-    }
+    if (btnAddFriendEl) btnAddFriendEl.onclick = sendFriendRequest;
 
     const quickSearchInputEl = document.getElementById('quickSearchInput');
-    if (quickSearchInputEl) {
-      quickSearchInputEl.oninput = filterFriendsList;
-    }
+    if (quickSearchInputEl) quickSearchInputEl.oninput = filterFriendsList;
 
     const btnSendMsgEl = document.getElementById('btnSendMsg');
-    if (btnSendMsgEl) {
-      btnSendMsgEl.onclick = sendMessage;
-    }
+    if (btnSendMsgEl) btnSendMsgEl.onclick = sendMessage;
 
     const msgInputEl = document.getElementById('msgInput');
     if (msgInputEl) {
@@ -313,33 +310,28 @@
     }
 
     const btnToggleCamEl = document.getElementById('btnToggleCam');
-    if (btnToggleCamEl) {
-      btnToggleCamEl.onclick = toggleCamera;
-    }
+    if (btnToggleCamEl) btnToggleCamEl.onclick = toggleCamera;
 
     const btnToggleMicEl = document.getElementById('btnToggleMic');
-    if (btnToggleMicEl) {
-      btnToggleMicEl.onclick = toggleAudio;
-    }
+    if (btnToggleMicEl) btnToggleMicEl.onclick = toggleAudio;
 
     const btnSwitchCamEl = document.getElementById('btnSwitchCam');
-    if (btnSwitchCamEl) {
-      btnSwitchCamEl.onclick = switchCamera;
-    }
+    if (btnSwitchCamEl) btnSwitchCamEl.onclick = switchCamera;
     
     const btnEndCallEl = document.getElementById('btnEndCall');
-    if (btnEndCallEl) {
-      btnEndCallEl.onclick = endCall;
-    }
+    if (btnEndCallEl) btnEndCallEl.onclick = endCall;
 
     const btnAcceptCallEl = document.getElementById('btnAcceptCall');
-    if (btnAcceptCallEl) {
-      btnAcceptCallEl.onclick = acceptIncomingCall;
-    }
+    if (btnAcceptCallEl) btnAcceptCallEl.onclick = acceptIncomingCall;
 
     const btnRejectCallEl = document.getElementById('btnRejectCall');
-    if (btnRejectCallEl) {
-      btnRejectCallEl.onclick = rejectIncomingCall;
+    if (btnRejectCallEl) btnRejectCallEl.onclick = rejectIncomingCall;
+
+    const chkDataSaverEl = document.getElementById('chkDataSaver');
+    if (chkDataSaverEl) {
+      chkDataSaverEl.onchange = () => {
+        initCamera(); // Perbarui resolusi kamera secara real-time saat mode diubah
+      };
     }
   }
 
@@ -569,14 +561,58 @@
   }
 
   async function initCamera() {
+    const isDataSaverOn = document.getElementById('chkDataSaver')?.checked ?? true;
+
+    // Konfigurasi konstrain video: jika mode hemat data aktif, batasi resolusi & framerate kecil (sangat ringan untuk 3G)
+    const videoConstraint = isDataSaverOn ? {
+      facingMode: useFrontCamera ? 'user' : { exact: 'environment' },
+      width: { ideal: 176 },
+      height: { ideal: 144 },
+      frameRate: { ideal: 10, max: 15 }
+    } : {
+      facingMode: useFrontCamera ? 'user' : { exact: 'environment' }
+    };
+
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      const localVideo = document.getElementById('videoLocal');
-      if (localVideo) {
-        localVideo.srcObject = localStream;
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
       }
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraint,
+        audio: true
+      });
     } catch (err) {
-      console.error("Gagal mengakses kamera/mikrofon:", err);
+      try {
+        // Fallback jika exact environment gagal
+        const fallbackConstraint = isDataSaverOn ? {
+          facingMode: useFrontCamera ? 'user' : 'environment',
+          width: { ideal: 176 },
+          height: { ideal: 144 },
+          frameRate: { ideal: 10, max: 15 }
+        } : {
+          facingMode: useFrontCamera ? 'user' : 'environment'
+        };
+
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: fallbackConstraint,
+          audio: true
+        });
+      } catch (innerErr) {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      }
+    }
+
+    const localVideo = document.getElementById('videoLocal');
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+    }
+
+    // Perbarui track aktif jika sedang dalam panggilan
+    if (activeCall && activeCall.peerConnection) {
+      const videoSender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (videoSender && localStream.getVideoTracks()[0]) {
+        videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+      }
     }
   }
 
@@ -603,20 +639,8 @@
   }
 
   async function switchCamera() {
-    if (!localStream) return;
     useFrontCamera = !useFrontCamera;
-    const videoTrack = localStream.getVideoTracks()[0];
-    if (videoTrack) videoTrack.stop();
-
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: useFrontCamera ? 'user' : 'environment' },
-        audio: true
-      });
-      document.getElementById('videoLocal').srcObject = localStream;
-    } catch (err) {
-      console.error("Gagal mengganti kamera:", err);
-    }
+    await initCamera();
   }
 
   function startCall(friendKey) {
