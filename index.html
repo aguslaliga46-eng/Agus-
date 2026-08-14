@@ -100,7 +100,7 @@
     <div id="registerForm">
       <div class="auth-section">
         <input type="text" id="registerInput" placeholder="Nama lengkap baru...">
-        <button id="btnRegister">Daftar</button>
+        <button id="btnRegister" type="button">Daftar</button>
       </div>
       <div class="auth-switch">
         Sudah punya akun? <span id="toLoginMode">Masuk di sini</span>
@@ -111,7 +111,7 @@
     <div id="loginForm" class="hidden">
       <div class="auth-section">
         <input type="text" id="loginInput" placeholder="Nama lengkap terdaftar...">
-        <button id="btnLogin">Masuk</button>
+        <button id="btnLogin" type="button">Masuk</button>
       </div>
       <div class="auth-switch">
         Belum punya akun? <span id="toRegisterMode">Daftar di sini</span>
@@ -206,7 +206,7 @@
   let myNameKey = "";
   let rawMyName = "";
   let peer, localStream, activeCall, activeConnection;
-  let incomingCallInstance = null; // Menyimpan instance panggilan masuk sementara
+  let incomingCallInstance = null;
   let useFrontCamera = true;
   let currentChatFriendKey = null;
   let allFriendsData = [];
@@ -244,7 +244,14 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // Menjalankan inisialisasi setelah DOM benar-benar siap
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
+
+  function initAll() {
     requestNotificationPermission();
 
     const saved = localStorage.getItem('userName');
@@ -254,37 +261,92 @@
       initAppSession();
     }
 
-    document.getElementById('toLoginMode').addEventListener('click', () => {
-      document.getElementById('registerForm').classList.add('hidden');
-      document.getElementById('loginForm').classList.remove('hidden');
-    });
-    document.getElementById('toRegisterMode').addEventListener('click', () => {
-      document.getElementById('loginForm').classList.add('hidden');
-      document.getElementById('registerForm').classList.remove('hidden');
-    });
+    const toLoginModeEl = document.getElementById('toLoginMode');
+    if (toLoginModeEl) {
+      toLoginModeEl.onclick = () => {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+      };
+    }
 
-    document.getElementById('btnRegister').addEventListener('click', registerUser);
-    document.getElementById('btnLogin').addEventListener('click', loginUser);
-    document.getElementById('btnLogout').addEventListener('click', logoutUser);
+    const toRegisterModeEl = document.getElementById('toRegisterMode');
+    if (toRegisterModeEl) {
+      toRegisterModeEl.onclick = () => {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+      };
+    }
 
-    document.getElementById('btnAddFriend').addEventListener('click', sendFriendRequest);
-    document.getElementById('quickSearchInput').addEventListener('input', filterFriendsList);
-    document.getElementById('btnSendMsg').addEventListener('click', sendMessage);
-    document.getElementById('msgInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+    const btnRegisterEl = document.getElementById('btnRegister');
+    if (btnRegisterEl) {
+      btnRegisterEl.onclick = registerUser;
+    }
 
-    document.getElementById('btnToggleCam').addEventListener('click', toggleCamera);
-    document.getElementById('btnToggleMic').addEventListener('click', toggleAudio);
-    document.getElementById('btnSwitchCam').addEventListener('click', switchCamera);
+    const btnLoginEl = document.getElementById('btnLogin');
+    if (btnLoginEl) {
+      btnLoginEl.onclick = loginUser;
+    }
+
+    const btnLogoutEl = document.getElementById('btnLogout');
+    if (btnLogoutEl) {
+      btnLogoutEl.onclick = logoutUser;
+    }
+
+    const btnAddFriendEl = document.getElementById('btnAddFriend');
+    if (btnAddFriendEl) {
+      btnAddFriendEl.onclick = sendFriendRequest;
+    }
+
+    const quickSearchInputEl = document.getElementById('quickSearchInput');
+    if (quickSearchInputEl) {
+      quickSearchInputEl.oninput = filterFriendsList;
+    }
+
+    const btnSendMsgEl = document.getElementById('btnSendMsg');
+    if (btnSendMsgEl) {
+      btnSendMsgEl.onclick = sendMessage;
+    }
+
+    const msgInputEl = document.getElementById('msgInput');
+    if (msgInputEl) {
+      msgInputEl.onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+    }
+
+    const btnToggleCamEl = document.getElementById('btnToggleCam');
+    if (btnToggleCamEl) {
+      btnToggleCamEl.onclick = toggleCamera;
+    }
+
+    const btnToggleMicEl = document.getElementById('btnToggleMic');
+    if (btnToggleMicEl) {
+      btnToggleMicEl.onclick = toggleAudio;
+    }
+
+    const btnSwitchCamEl = document.getElementById('btnSwitchCam');
+    if (btnSwitchCamEl) {
+      btnSwitchCamEl.onclick = switchCamera;
+    }
     
-    document.getElementById('btnEndCall').addEventListener('click', endCall);
+    const btnEndCallEl = document.getElementById('btnEndCall');
+    if (btnEndCallEl) {
+      btnEndCallEl.onclick = endCall;
+    }
 
-    // Tombol Terima & Tolak Call Masuk
-    document.getElementById('btnAcceptCall').addEventListener('click', acceptIncomingCall);
-    document.getElementById('btnRejectCall').addEventListener('click', rejectIncomingCall);
-  });
+    const btnAcceptCallEl = document.getElementById('btnAcceptCall');
+    if (btnAcceptCallEl) {
+      btnAcceptCallEl.onclick = acceptIncomingCall;
+    }
+
+    const btnRejectCallEl = document.getElementById('btnRejectCall');
+    if (btnRejectCallEl) {
+      btnRejectCallEl.onclick = rejectIncomingCall;
+    }
+  }
 
   async function registerUser() {
-    rawMyName = document.getElementById('registerInput').value.trim();
+    const inputEl = document.getElementById('registerInput');
+    if (!inputEl) return;
+    rawMyName = inputEl.value.trim();
     if (!rawMyName) return alert("Masukkan nama lengkap terlebih dahulu!");
 
     myNameKey = rawMyName.toLowerCase().replace(/\s+/g, '_');
@@ -305,7 +367,9 @@
   }
 
   async function loginUser() {
-    rawMyName = document.getElementById('loginInput').value.trim();
+    const inputEl = document.getElementById('loginInput');
+    if (!inputEl) return;
+    rawMyName = inputEl.value.trim();
     if (!rawMyName) return alert("Masukkan nama lengkap Anda!");
 
     myNameKey = rawMyName.toLowerCase().replace(/\s+/g, '_');
@@ -357,7 +421,6 @@
       
       triggerBackgroundNotification(callerName);
 
-      // Tampilkan Box Terima/Tolak Panggilan
       document.getElementById('incomingCallerText').textContent = `${callerName} sedang menelepon...`;
       document.getElementById('incomingCallContainer').classList.remove('hidden');
       document.getElementById('statusText').textContent = "Panggilan Masuk...";
@@ -369,7 +432,6 @@
     });
   }
 
-  // Aksi Menerima Panggilan Masuk
   function acceptIncomingCall() {
     if (!incomingCallInstance) return;
     
@@ -382,11 +444,9 @@
     handleCall(incomingCallInstance);
     currentChatFriendKey = incomingCallInstance.peer;
 
-    // Sembunyikan panel call masuk
     document.getElementById('incomingCallContainer').classList.add('hidden');
   }
 
-  // Aksi Menolak Panggilan Masuk
   function rejectIncomingCall() {
     if (incomingCallInstance) {
       incomingCallInstance.close();
@@ -397,7 +457,9 @@
   }
 
   async function sendFriendRequest() {
-    const targetName = document.getElementById('searchFriendInput').value.trim();
+    const searchInput = document.getElementById('searchFriendInput');
+    if (!searchInput) return;
+    const targetName = searchInput.value.trim();
     const targetKey = targetName.toLowerCase().replace(/\s+/g, '_');
 
     if (!targetName || targetKey === myNameKey) return alert("Masukkan nama teman yang valid!");
@@ -411,12 +473,13 @@
 
     await set(ref(db, `requests/${targetKey}/${myNameKey}`), { name: rawMyName });
     alert("Permintaan pertemanan dikirim!");
-    document.getElementById('searchFriendInput').value = "";
+    searchInput.value = "";
   }
 
   function listenToDatabase() {
     onValue(ref(db, `requests/${myNameKey}`), (snapshot) => {
       const box = document.getElementById('incomingRequestsBox');
+      if (!box) return;
       box.innerHTML = "";
       if (!snapshot.exists()) {
         box.innerHTML = `<div style="color: #94a3b8; text-align: center;">Tidak ada permintaan</div>`;
@@ -437,8 +500,10 @@
       snapshot.forEach((childSnap) => {
         const senderKey = childSnap.key;
         const senderName = childSnap.val().name;
-        document.getElementById(`accept_${senderKey}`).onclick = () => acceptFriend(senderKey, senderName);
-        document.getElementById(`reject_${senderKey}`).onclick = () => rejectFriend(senderKey);
+        const acceptBtn = document.getElementById(`accept_${senderKey}`);
+        const rejectBtn = document.getElementById(`reject_${senderKey}`);
+        if (acceptBtn) acceptBtn.onclick = () => acceptFriend(senderKey, senderName);
+        if (rejectBtn) rejectBtn.onclick = () => rejectFriend(senderKey);
       });
     });
 
@@ -458,6 +523,7 @@
 
   function renderFriendsList(friendsArray) {
     const box = document.getElementById('friendsListBox');
+    if (!box) return;
     box.innerHTML = "";
     
     if (friendsArray.length === 0) {
@@ -477,34 +543,5 @@
     });
 
     friendsArray.forEach((friend) => {
-      document.getElementById(`call_${friend.key}`).onclick = () => callFriend(friend.key);
-      document.getElementById(`menu_${friend.key}`).onclick = () => openFriendMenu(friend.key, friend.name);
-    });
-  }
-
-  function filterFriendsList() {
-    const keyword = document.getElementById('quickSearchInput').value.toLowerCase();
-    const filtered = allFriendsData.filter(f => f.name.toLowerCase().includes(keyword));
-    renderFriendsList(filtered);
-  }
-
-  function openFriendMenu(friendKey, friendName) {
-    const choice = prompt(`Menu Teman: ${friendName}\n1. Mulai Chat / Fokuskan\n2. Hapus Pertemanan\nPilih nomor menu (1 atau 2):`);
-    if (choice === "1") {
-      currentChatFriendKey = friendKey;
-      alert(`Chat dialihkan ke ${friendName}. Silakan ketik pesan di bawah.`);
-    } else if (choice === "2") {
-      if (confirm(`Hapus ${friendName} dari daftar teman?`)) {
-        removeFriend(friendKey);
-      }
-    }
-  }
-
-  async function removeFriend(friendKey) {
-    await remove(ref(db, `friends/${myNameKey}/${friendKey}`));
-    await remove(ref(db, `friends/${friendKey}/${myNameKey}`));
-    alert("Teman berhasil dihapus.");
-  }
-
-  async function acceptFriend(friendKey, friendName) {
-    await set(ref(db, `friends/${myN
+      const callBtn = document.getElementById(`call_${friend.key}`);
+      const menuBtn = document.getEle
