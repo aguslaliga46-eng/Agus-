@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Video Call Room (WebView Ready & Stable)</title>
+  <title>Video Call Room (Firebase Auth & Stable)</title>
   
   <!-- PWA Manifest Link -->
   <link rel="manifest" href="/i/manifest.json">
@@ -11,14 +11,18 @@
 
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 15px; display: flex; justify-content: center; margin: 0; }
     .app-container { width: 100%; max-width: 360px; background: #fff; padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
     h2 { text-align: center; color: #0f172a; font-size: 18px; margin: 0 0 12px 0; }
     
-    .room-control { display: flex; gap: 8px; margin-bottom: 12px; }
-    .room-control input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
-    .room-control button { padding: 10px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .room-control, .auth-section { display: flex; gap: 8px; margin-bottom: 12px; }
+    .room-control input, .auth-section input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
+    .room-control button, .auth-section button { padding: 10px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    
+    .auth-container { border-bottom: 1px solid #e2e8f0; margin-bottom: 12px; padding-bottom: 12px; }
+    .hidden { display: none !important; }
 
     /* Tampilan Video 90x90 */
     .video-grid { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
@@ -42,42 +46,124 @@
 <body>
 
 <div class="app-container">
-  <h2>Video Call</h2>
+  <h2>Video Call App</h2>
+
+  <!-- Bagian Login Firebase OTP -->
+  <div id="authContainer" class="auth-container">
+    <div id="phoneSection" class="auth-section">
+      <input type="tel" id="phoneNumber" placeholder="No HP (contoh: +62812...)">
+      <button id="btnSendOtp" onclick="sendOTP()">Kirim OTP</button>
+    </div>
+    
+    <div id="otpSection" class="auth-section hidden">
+      <input type="text" id="otpCode" placeholder="Kode OTP 6 digit">
+      <button id="btnVerifyOtp" onclick="verifyOTP()">Login</button>
+    </div>
+    <div id="recaptcha-container"></div>
+  </div>
   
-  <div class="room-control">
-    <input type="text" id="roomInput" placeholder="Kode room...">
-    <button onclick="joinRoom()">Masuk</button>
-  </div>
-
-  <div class="status-text" id="statusText">Ketuk 'Masuk' untuk aktifkan izin & kamera</div>
-
-  <!-- Tampilan Video -->
-  <div class="video-grid">
-    <div class="video-wrapper">
-      <video id="videoRemote" autoplay playsinline></video>
-      <span class="video-label">Lawan</span>
+  <!-- Fitur Utama Video Call (Awalnya disembunyikan sebelum login) -->
+  <div id="callMainContent" class="hidden">
+    <div class="room-control">
+      <input type="text" id="roomInput" placeholder="Kode room...">
+      <button onclick="joinRoom()">Masuk</button>
     </div>
-    <div class="video-wrapper">
-      <video id="videoLocal" autoplay muted playsinline></video>
-      <span class="video-label">Anda</span>
-    </div>
-  </div>
 
-  <!-- Tombol Kontrol Kamera & Audio -->
-  <div class="media-controls">
-    <button id="btnToggleCam" onclick="toggleCamera()">Matikan Video</button>
-    <button id="btnToggleMic" onclick="toggleAudio()">Matikan Audio</button>
-    <button onclick="switchCamera()">Putar Kamera</button>
-  </div>
+    <div class="status-text" id="statusText">Ketuk 'Masuk' untuk aktifkan izin & kamera</div>
 
-  <div class="chat-box">
-    <div class="chat-input">
-      <input type="text" id="msgInput" placeholder="Pesan..." onkeypress="if(event.key==='Enter') sendMessage()">
-      <button onclick="sendMessage()">Kirim</button>
+    <!-- Tampilan Video -->
+    <div class="video-grid">
+      <div class="video-wrapper">
+        <video id="videoRemote" autoplay playsinline></video>
+        <span class="video-label">Lawan</span>
+      </div>
+      <div class="video-wrapper">
+        <video id="videoLocal" autoplay muted playsinline></video>
+        <span class="video-label">Anda</span>
+      </div>
     </div>
-    <div id="chatLog" class="chat-log"></div>
+
+    <!-- Tombol Kontrol Kamera & Audio -->
+    <div class="media-controls">
+      <button id="btnToggleCam" onclick="toggleCamera()">Matikan Video</button>
+      <button id="btnToggleMic" onclick="toggleAudio()">Matikan Audio</button>
+      <button onclick="switchCamera()">Putar Kamera</button>
+    </div>
+
+    <div class="chat-box">
+      <div class="chat-input">
+        <input type="text" id="msgInput" placeholder="Pesan..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()">Kirim</button>
+      </div>
+      <div id="chatLog" class="chat-log"></div>
+    </div>
   </div>
 </div>
+
+<!-- Firebase SDK (Modular Versi 10) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  // Konfigurasi Firebase Anda (Sesuaikan dengan project Firebase "Kamal" Anda)
+  const firebaseConfig = {
+    apiKey: "MASUKKAN_API_KEY_ANDA",
+    authDomain: "kamal-60b2c.firebaseapp.com",
+    projectId: "kamal-60b2c",
+    storageBucket: "kamal-60b2c.appspot.com",
+    messagingSenderId: "MASUKKAN_SENDER_ID",
+    appId: "MASUKKAN_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth();
+
+  // Inisialisasi reCAPTCHA tersembunyi untuk Firebase Auth
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    'size': 'invisible'
+  });
+
+  window.sendOTP = async function() {
+    const phoneNumber = document.getElementById('phoneNumber').value.trim();
+    if (!phoneNumber) return alert("Masukkan nomor HP terlebih dahulu!");
+
+    const btn = document.getElementById('btnSendOtp');
+    btn.disabled = true;
+    btn.textContent = "Mengirim...";
+
+    try {
+      const appVerifier = window.recaptchaVerifier;
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      window.confirmationResult = confirmationResult;
+      
+      document.getElementById('phoneSection').classList.add('hidden');
+      document.getElementById('otpSection').classList.remove('hidden');
+      alert("Kode OTP berhasil dikirim via SMS!");
+    } catch (error) {
+      console.error("Gagal kirim OTP:", error);
+      alert("Gagal kirim OTP: " + error.message);
+      btn.disabled = false;
+      btn.textContent = "Kirim OTP";
+    }
+  };
+
+  window.verifyOTP = async function() {
+    const code = document.getElementById('otpCode').value.trim();
+    if (!code) return alert("Masukkan kode OTP!");
+
+    try {
+      const result = await window.confirmationResult.confirm(code);
+      alert("Login Berhasil! Selamat datang.");
+      
+      // Sembunyikan form login, tampilkan menu video call utama
+      document.getElementById('authContainer').classList.add('hidden');
+      document.getElementById('callMainContent').classList.remove('hidden');
+    } catch (error) {
+      console.error("OTP Salah:", error);
+      alert("Kode OTP salah atau kedaluwarsa!");
+    }
+  };
+</script>
 
 <script>
   // Registrasi Service Worker PWA secara otomatis agar skor PWABuilder maksimal
@@ -122,7 +208,6 @@
         localStream.getTracks().forEach(track => track.stop());
       }
 
-      // Di WebView Android, getUserMedia wajib dipicu dari interaksi pengguna (tombol)
       localStream = await navigator.mediaDevices.getUserMedia(constraints);
       document.getElementById('videoLocal').srcObject = localStream;
       
@@ -182,7 +267,6 @@
     const code = document.getElementById('roomInput').value.trim();
     if (!code) return alert("Masukkan kode room terlebih dahulu!");
     
-    // Inisialisasi kamera langsung dipicu saat tombol "Masuk" ditekan (Sangat penting untuk WebView)
     await initCamera();
     if (!localStream) return;
 
