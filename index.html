@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Video Call App with Friends & Search</title>
+  <title>Video Call App Pro</title>
   
   <link rel="manifest" href="/i/manifest.json">
   <meta name="theme-color" content="#ffffff">
@@ -42,7 +42,7 @@
     h3 { font-size: 14px; margin-top: 15px; color: #334155; }
     
     .auth-section, .friend-control { display: flex; gap: 8px; margin-bottom: 8px; }
-    input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
+    input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
     button { padding: 10px 14px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
     button.secondary { background: #0ea5e9; }
     button.danger { background: #ef4444; }
@@ -62,7 +62,7 @@
     .video-label { position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.6); color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 8px; z-index: 2; }
 
     .media-controls { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
-    .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border-radius: 6px; font-size: 11px; }
+    .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border-radius: 6px; font-size: 11px; font-weight: normal; }
     .media-controls button.active { background: #ef4444; color: white; }
 
     .list-box { max-height: 120px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 13px; }
@@ -80,7 +80,7 @@
 
 <div class="app-container">
   <!-- Tombol Logout Bulat di Pojok Kiri Atas -->
-  <button id="btnLogout" class="logout-btn hidden" onclick="logoutUser()" title="Keluar">↩</button>
+  <button id="btnLogout" class="logout-btn hidden" title="Keluar">↩</button>
 
   <h2 id="appTitle">Video Call App</h2>
 
@@ -90,22 +90,22 @@
     <!-- Form Daftar -->
     <div id="registerForm">
       <div class="auth-section">
-        <input type="text" id="registerInput" placeholder="Nama lengkap baru..." onkeypress="if(event.key==='Enter') registerUser()">
-        <button id="btnRegister" onclick="registerUser()">Daftar</button>
+        <input type="text" id="registerInput" placeholder="Nama lengkap baru...">
+        <button id="btnRegister">Daftar</button>
       </div>
       <div class="auth-switch">
-        Sudah punya akun? <span onclick="switchAuthMode('login')">Masuk di sini</span>
+        Sudah punya akun? <span id="toLoginMode">Masuk di sini</span>
       </div>
     </div>
 
     <!-- Form Masuk (Login) -->
     <div id="loginForm" class="hidden">
       <div class="auth-section">
-        <input type="text" id="loginInput" placeholder="Nama lengkap terdaftar..." onkeypress="if(event.key==='Enter') loginUser()">
-        <button id="btnLogin" onclick="loginUser()">Masuk</button>
+        <input type="text" id="loginInput" placeholder="Nama lengkap terdaftar...">
+        <button id="btnLogin">Masuk</button>
       </div>
       <div class="auth-switch">
-        Belum punya akun? <span onclick="switchAuthMode('register')">Daftar di sini</span>
+        Belum punya akun? <span id="toRegisterMode">Daftar di sini</span>
       </div>
     </div>
 
@@ -119,7 +119,7 @@
     <div>
       <div class="friend-control">
         <input type="text" id="searchFriendInput" placeholder="Cari nama teman...">
-        <button class="secondary" onclick="sendFriendRequest()">Tambah</button>
+        <button class="secondary" id="btnAddFriend">Tambah</button>
       </div>
 
       <h3>Permintaan Pertemanan Masuk</h3>
@@ -127,12 +127,11 @@
         <div style="color: #94a3b8; text-align: center;">Tidak ada permintaan</div>
       </div>
 
-      <!-- Header Daftar Teman + Input Pencarian Cepat -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 5px;">
         <h3 style="margin: 0;">Daftar Teman</h3>
       </div>
       <div style="margin-bottom: 6px;">
-        <input type="text" id="quickSearchInput" placeholder="Cari cepat di daftar teman..." oninput="filterFriendsList()" style="width: 100%; box-sizing: border-box; padding: 6px 10px; font-size: 12px;">
+        <input type="text" id="quickSearchInput" placeholder="Cari cepat di daftar teman..." style="width: 100%; padding: 6px 10px; font-size: 12px;">
       </div>
       <div id="friendsListBox" class="list-box">
         <div style="color: #94a3b8; text-align: center;">Belum ada teman</div>
@@ -152,15 +151,15 @@
     </div>
 
     <div class="media-controls">
-      <button id="btnToggleCam" onclick="toggleCamera()">Matikan Video</button>
-      <button id="btnToggleMic" onclick="toggleAudio()">Matikan Audio</button>
-      <button onclick="switchCamera()">Putar Kamera</button>
+      <button id="btnToggleCam">Matikan Video</button>
+      <button id="btnToggleMic">Matikan Audio</button>
+      <button id="btnSwitchCam">Putar Kamera</button>
     </div>
 
     <div class="chat-box">
       <div class="chat-input">
-        <input type="text" id="msgInput" placeholder="Pesan..." onkeypress="if(event.key==='Enter') sendMessage()">
-        <button onclick="sendMessage()">Kirim</button>
+        <input type="text" id="msgInput" placeholder="Pesan...">
+        <button id="btnSendMsg">Kirim</button>
       </div>
       <div id="chatLog" class="chat-log"></div>
     </div>
@@ -174,13 +173,8 @@
 
   const firebaseConfig = {
     apiKey: "AIzaSyCaWV3xAbJGYLWcrxZb9iii9BBV1SZU1TE",
-    authDomain: "kamal-60b2c.firebaseapp.com",
     databaseURL: "https://kamal-60b2c-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "kamal-60b2c",
-    storageBucket: "kamal-60b2c.firebasestorage.app",
-    messagingSenderId: "186271118190",
-    appId: "1:186271118190:web:d925792b930bec2090077f",
-    measurementId: "G-6SFKJBPH7T"
+    projectId: "kamal-60b2c"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -193,28 +187,22 @@
   let currentChatFriendKey = null;
   let allFriendsData = [];
 
-  // --- Fungsi Suara & Notifikasi Latar Belakang ---
+  // Suara & Notifikasi Latar Belakang
   function playClingSound() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
       osc.type = 'sine';
       osc.frequency.setValueAtTime(800, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.3);
-      
       gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      
       osc.start();
       osc.stop(audioCtx.currentTime + 0.3);
-    } catch (e) {
-      console.log("Audio diblokir browser.");
-    }
+    } catch (e) {}
   }
 
   function triggerBackgroundNotification(callerName) {
@@ -228,17 +216,44 @@
     }
   }
 
-  window.switchAuthMode = function(mode) {
-    if (mode === 'login') {
+  // Pengaturan Event Listener Tombol (Aman dari Error Scope)
+  document.addEventListener('DOMContentLoaded', () => {
+    // Cek Sesi Tersimpan
+    const saved = localStorage.getItem('userName');
+    if (saved) {
+      rawMyName = saved;
+      myNameKey = saved.toLowerCase().replace(/\s+/g, '_');
+      initAppSession();
+    }
+
+    // Switch Form Auth
+    document.getElementById('toLoginMode').addEventListener('click', () => {
       document.getElementById('registerForm').classList.add('hidden');
       document.getElementById('loginForm').classList.remove('hidden');
-    } else {
+    });
+    document.getElementById('toRegisterMode').addEventListener('click', () => {
       document.getElementById('loginForm').classList.add('hidden');
       document.getElementById('registerForm').classList.remove('hidden');
-    }
-  };
+    });
 
-  window.registerUser = async function() {
+    // Tombol Auth
+    document.getElementById('btnRegister').addEventListener('click', registerUser);
+    document.getElementById('btnLogin').addEventListener('click', loginUser);
+    document.getElementById('btnLogout').addEventListener('click', logoutUser);
+
+    // Tombol Pertemanan & Chat
+    document.getElementById('btnAddFriend').addEventListener('click', sendFriendRequest);
+    document.getElementById('quickSearchInput').addEventListener('input', filterFriendsList);
+    document.getElementById('btnSendMsg').addEventListener('click', sendMessage);
+    document.getElementById('msgInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+
+    // Tombol Media & Kamera
+    document.getElementById('btnToggleCam').addEventListener('click', toggleCamera);
+    document.getElementById('btnToggleMic').addEventListener('click', toggleAudio);
+    document.getElementById('btnSwitchCam').addEventListener('click', switchCamera);
+  });
+
+  async function registerUser() {
     rawMyName = document.getElementById('registerInput').value.trim();
     if (!rawMyName) return alert("Masukkan nama lengkap terlebih dahulu!");
 
@@ -251,16 +266,15 @@
         alert("Nama sudah terdaftar! Gunakan nama lain atau silakan Masuk.");
         return;
       }
-
       await set(ref(db, `users/${myNameKey}`), { fullName: rawMyName });
       localStorage.setItem('userName', rawMyName);
       initAppSession();
     } catch (err) {
       alert("Gagal mendaftar. Coba lagi.");
     }
-  };
+  }
 
-  window.loginUser = async function() {
+  async function loginUser() {
     rawMyName = document.getElementById('loginInput').value.trim();
     if (!rawMyName) return alert("Masukkan nama lengkap Anda!");
 
@@ -273,22 +287,12 @@
         alert("Nama belum terdaftar! Silakan daftar terlebih dahulu.");
         return;
       }
-
       localStorage.setItem('userName', rawMyName);
       initAppSession();
     } catch (err) {
       alert("Gagal masuk. Coba lagi.");
     }
-  };
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('userName');
-    if (saved) {
-      rawMyName = saved;
-      myNameKey = saved.toLowerCase().replace(/\s+/g, '_');
-      initAppSession();
-    }
-  });
+  }
 
   function initAppSession() {
     document.getElementById('authContainer').classList.add('hidden');
@@ -299,12 +303,12 @@
     initCamera();
   }
 
-  window.logoutUser = function() {
+  function logoutUser() {
     if (confirm("Apakah Anda yakin ingin keluar?")) {
       localStorage.removeItem('userName');
       window.location.reload();
     }
-  };
+  }
 
   function initPeerJS() {
     peer = new Peer(myNameKey, {
@@ -317,7 +321,6 @@
         call.close();
         return;
       }
-
       const callerName = friendSnap.val().name || call.peer;
       triggerBackgroundNotification(callerName);
 
@@ -332,7 +335,7 @@
     });
   }
 
-  window.sendFriendRequest = async function() {
+  async function sendFriendRequest() {
     const targetName = document.getElementById('searchFriendInput').value.trim();
     const targetKey = targetName.toLowerCase().replace(/\s+/g, '_');
 
@@ -348,7 +351,7 @@
     await set(ref(db, `requests/${targetKey}/${myNameKey}`), { name: rawMyName });
     alert("Permintaan pertemanan dikirim!");
     document.getElementById('searchFriendInput').value = "";
-  };
+  }
 
   function listenToDatabase() {
     onValue(ref(db, `requests/${myNameKey}`), (snapshot) => {
@@ -358,7 +361,6 @@
         box.innerHTML = `<div style="color: #94a3b8; text-align: center;">Tidak ada permintaan</div>`;
         return;
       }
-
       snapshot.forEach((childSnap) => {
         const senderKey = childSnap.key;
         const senderName = childSnap.val().name;
@@ -366,10 +368,17 @@
           <div class="list-item">
             <span>${senderName}</span>
             <div>
-              <button class="success" onclick="acceptFriend('${senderKey}', '${senderName}')">Terima</button>
-              <button class="danger" onclick="rejectFriend('${senderKey}')">Tolak</button>
+              <button class="success" id="accept_${senderKey}">Terima</button>
+              <button class="danger" id="reject_${senderKey}">Tolak</button>
             </div>
           </div>`;
+      });
+      // Berikan event listener dinamis untuk tombol terima/tolak pertemanan
+      snapshot.forEach((childSnap) => {
+        const senderKey = childSnap.key;
+        const senderName = childSnap.val().name;
+        document.getElementById(`accept_${senderKey}`).onclick = () => acceptFriend(senderKey, senderName);
+        document.getElementById(`reject_${senderKey}`).onclick = () => rejectFriend(senderKey);
       });
     });
 
@@ -401,20 +410,26 @@
         <div class="list-item">
           <span><b>${friend.name}</b></span>
           <div class="friend-actions">
-            <button class="success" onclick="callFriend('${friend.key}')" style="padding: 5px 8px; font-size: 11px;">Panggil</button>
-            <button class="menu-btn" onclick="openFriendMenu('${friend.key}', '${friend.name}')">Menu</button>
+            <button class="success" id="call_${friend.key}" style="padding: 5px 8px; font-size: 11px;">Panggil</button>
+            <button class="menu-btn" id="menu_${friend.key}">Menu</button>
           </div>
         </div>`;
     });
+
+    // Tambahkan event listener untuk tombol dinamis di daftar teman
+    friendsArray.forEach((friend) => {
+      document.getElementById(`call_${friend.key}`).onclick = () => callFriend(friend.key);
+      document.getElementById(`menu_${friend.key}`).onclick = () => openFriendMenu(friend.key, friend.name);
+    });
   }
 
-  window.filterFriendsList = function() {
+  function filterFriendsList() {
     const keyword = document.getElementById('quickSearchInput').value.toLowerCase();
     const filtered = allFriendsData.filter(f => f.name.toLowerCase().includes(keyword));
     renderFriendsList(filtered);
-  };
+  }
 
-  window.openFriendMenu = function(friendKey, friendName) {
+  function openFriendMenu(friendKey, friendName) {
     const choice = prompt(`Menu Teman: ${friendName}\n1. Mulai Chat / Fokuskan\n2. Hapus Pertemanan\nPilih nomor menu (1 atau 2):`);
     if (choice === "1") {
       currentChatFriendKey = friendKey;
@@ -424,7 +439,7 @@
         removeFriend(friendKey);
       }
     }
-  };
+  }
 
   async function removeFriend(friendKey) {
     await remove(ref(db, `friends/${myNameKey}/${friendKey}`));
@@ -432,17 +447,17 @@
     alert("Teman berhasil dihapus.");
   }
 
-  window.acceptFriend = async function(friendKey, friendName) {
+  async function acceptFriend(friendKey, friendName) {
     await set(ref(db, `friends/${myNameKey}/${friendKey}`), { name: friendName });
     await set(ref(db, `friends/${friendKey}/${myNameKey}`), { name: rawMyName });
     await remove(ref(db, `requests/${myNameKey}/${friendKey}`));
-  };
+  }
 
-  window.rejectFriend = async function(friendKey) {
+  async function rejectFriend(friendKey) {
     await remove(ref(db, `requests/${myNameKey}/${friendKey}`));
-  };
+  }
 
-  window.callFriend = async function(friendKey) {
+  async function callFriend(friendKey) {
     if (!localStream) return alert("Kamera belum siap!");
     
     const friendSnap = await get(child(ref(db), `friends/${myNameKey}/${friendKey}`));
@@ -456,7 +471,7 @@
 
     activeConnection = peer.connect(friendKey);
     setupChat(activeConnection);
-  };
+  }
 
   async function initCamera() {
     try {
@@ -473,7 +488,7 @@
     }
   }
 
-  window.switchCamera = async function() {
+  async function switchCamera() {
     useFrontCamera = !useFrontCamera;
     await initCamera();
     if (activeCall) {
@@ -481,7 +496,7 @@
       const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
       if (sender) sender.replaceTrack(videoTrack);
     }
-  };
+  }
 
   function handleCall(call) {
     activeCall = call;
@@ -502,7 +517,7 @@
     });
   }
 
-  window.sendMessage = async function() {
+  async function sendMessage() {
     const input = document.getElementById('msgInput');
     const msgText = input.value.trim();
     if (!msgText) return;
@@ -523,17 +538,31 @@
 
     document.getElementById('chatLog').innerHTML += `<div>Anda: ${msgText}</div>`;
     input.value = "";
-  };
+  }
 
-  window.toggleCamera = () => {
+  function toggleCamera() {
     const track = localStream.getVideoTracks()[0];
     track.enabled = !track.enabled;
-  };
+    const btn = document.getElementById('btnToggleCam');
+    btn.classList.toggle('active', !track.enabled);
+    btn.textContent = track.enabled ? "Matikan Video" : "Nyalakan Video";
+  }
 
-  window.toggleAudio = () => {
+  function toggleAudio() {
     const track = localStream.getAudioTracks()[0];
     track.enabled = !track.enabled;
-  };
+    const btn = document.getElementById('btnToggleMic');
+    btn.classList.toggle('active', !track.enabled);
+    btn.textContent = track.enabled ? "Matikan Audio" : "Nyalakan Audio";
+  }
 
-  // --- Pendaftaran Service Worker ---
-  if ('serviceWorker' in navigato
+  // Pendaftaran Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
