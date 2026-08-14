@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Video Call Room (Firebase Auth & Stable)</title>
+  <title>Video Call Room (Simple Name Login)</title>
   
   <!-- PWA Manifest Link -->
   <link rel="manifest" href="/i/manifest.json">
@@ -48,18 +48,12 @@
 <div class="app-container">
   <h2>Video Call App</h2>
 
-  <!-- Bagian Login Firebase OTP -->
+  <!-- Bagian Login Nama Lengkap Sederhana -->
   <div id="authContainer" class="auth-container">
-    <div id="phoneSection" class="auth-section">
-      <input type="tel" id="phoneNumber" placeholder="No HP (contoh: +62812...)">
-      <button id="btnSendOtp" onclick="sendOTP()">Kirim OTP</button>
+    <div id="nameSection" class="auth-section">
+      <input type="text" id="fullNameInput" placeholder="Masukkan nama lengkap Anda..." onkeypress="if(event.key==='Enter') loginWithName()">
+      <button onclick="loginWithName()">Masuk</button>
     </div>
-    
-    <div id="otpSection" class="auth-section hidden">
-      <input type="text" id="otpCode" placeholder="Kode OTP 6 digit">
-      <button id="btnVerifyOtp" onclick="verifyOTP()">Login</button>
-    </div>
-    <div id="recaptcha-container"></div>
   </div>
   
   <!-- Fitur Utama Video Call (Awalnya disembunyikan sebelum login) -->
@@ -100,74 +94,26 @@
   </div>
 </div>
 
-<!-- Firebase SDK (Modular Versi 10) -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-  // Konfigurasi Firebase Anda yang sudah diperbarui
-  const firebaseConfig = {
-    apiKey: "AIzaSyCaWV3xAbJGYLWcrxZb9iii9BBV1SZU1TE",
-    authDomain: "kamal-60b2c.firebaseapp.com",
-    databaseURL: "https://kamal-60b2c-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "kamal-60b2c",
-    storageBucket: "kamal-60b2c.firebasestorage.app",
-    messagingSenderId: "186271118190",
-    appId: "1:186271118190:web:d925792b930bec2090077f",
-    measurementId: "G-6SFKJBPH7T"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth();
-
-  // Inisialisasi reCAPTCHA tersembunyi untuk Firebase Auth
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-    'size': 'invisible'
-  });
-
-  window.sendOTP = async function() {
-    const phoneNumber = document.getElementById('phoneNumber').value.trim();
-    if (!phoneNumber) return alert("Masukkan nomor HP terlebih dahulu!");
-
-    const btn = document.getElementById('btnSendOtp');
-    btn.disabled = true;
-    btn.textContent = "Mengirim...";
-
-    try {
-      const appVerifier = window.recaptchaVerifier;
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-      window.confirmationResult = confirmationResult;
-      
-      document.getElementById('phoneSection').classList.add('hidden');
-      document.getElementById('otpSection').classList.remove('hidden');
-      alert("Kode OTP berhasil dikirim via SMS!");
-    } catch (error) {
-      console.error("Gagal kirim OTP:", error);
-      alert("Gagal kirim OTP: " + error.message);
-      btn.disabled = false;
-      btn.textContent = "Kirim OTP";
-    }
-  };
-
-  window.verifyOTP = async function() {
-    const code = document.getElementById('otpCode').value.trim();
-    if (!code) return alert("Masukkan kode OTP!");
-
-    try {
-      const result = await window.confirmationResult.confirm(code);
-      alert("Login Berhasil! Selamat datang.");
-      
-      // Sembunyikan form login, tampilkan menu video call utama
+<script>
+  // Cek apakah pengguna sudah pernah memasukkan nama sebelumnya saat halaman dimuat
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedName = localStorage.getItem('userName');
+    if (savedName) {
       document.getElementById('authContainer').classList.add('hidden');
       document.getElementById('callMainContent').classList.remove('hidden');
-    } catch (error) {
-      console.error("OTP Salah:", error);
-      alert("Kode OTP salah atau kedaluwarsa!");
     }
-  };
-</script>
+  });
 
-<script>
+  // Fungsi Login Menggunakan Nama Lengkap
+  function loginWithName() {
+    const name = document.getElementById('fullNameInput').value.trim();
+    if (!name) return alert("Masukkan nama lengkap terlebih dahulu!");
+
+    localStorage.setItem('userName', name);
+    document.getElementById('authContainer').classList.add('hidden');
+    document.getElementById('callMainContent').classList.remove('hidden');
+  }
+
   // Registrasi Service Worker PWA secara otomatis agar skor PWABuilder maksimal
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -341,14 +287,15 @@
 
   function sendMessage() {
     const input = document.getElementById('msgInput');
+    const myName = localStorage.getItem('userName') || "Seseorang";
     if (activeConnection && input.value) {
-      activeConnection.send(input.value);
-      document.getElementById('chatLog').innerHTML += `<div>Anda: ${input.value}</div>`;
+      const fullMessage = `${myName}: ${input.value}`;
+      activeConnection.send(fullMessage);
+      document.getElementById('chatLog').innerHTML += `<div>Anda: ${fullMessage}</div>`;
       input.value = "";
     }
   }
 </script>
 
 </body>
-  </html>
-  
+</html>
