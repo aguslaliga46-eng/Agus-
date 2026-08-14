@@ -68,7 +68,6 @@
     .list-box { max-height: 120px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 13px; }
     .list-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px; }
     
-    /* Menu Opsi Tambahan untuk Teman */
     .friend-actions { display: flex; gap: 4px; align-items: center; }
 
     .chat-box { border-top: 1px solid #e2e8f0; padding-top: 10px; }
@@ -192,7 +191,42 @@
   let peer, localStream, activeCall, activeConnection;
   let useFrontCamera = true;
   let currentChatFriendKey = null;
-  let allFriendsData = []; // Menyimpan data teman untuk pencarian cepat
+  let allFriendsData = [];
+
+  // --- Fungsi Suara & Notifikasi Latar Belakang ---
+  function playClingSound() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.3);
+      
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+      console.log("Audio diblokir browser.");
+    }
+  }
+
+  function triggerBackgroundNotification(callerName) {
+    playClingSound();
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SHOW_NOTIFICATION',
+        title: 'Panggilan Video Masuk!',
+        body: `${callerName} sedang menelepon Anda.`
+      });
+    }
+  }
 
   window.switchAuthMode = function(mode) {
     if (mode === 'login') {
@@ -220,7 +254,6 @@
 
       await set(ref(db, `users/${myNameKey}`), { fullName: rawMyName });
       localStorage.setItem('userName', rawMyName);
-      
       initAppSession();
     } catch (err) {
       alert("Gagal mendaftar. Coba lagi.");
@@ -284,6 +317,10 @@
         call.close();
         return;
       }
+
+      const callerName = friendSnap.val().name || call.peer;
+      triggerBackgroundNotification(callerName);
+
       call.answer(localStream);
       handleCall(call);
       currentChatFriendKey = call.peer;
@@ -350,7 +387,6 @@
     });
   }
 
-  // Render Daftar Teman Dilengkapi Menu Opsi
   function renderFriendsList(friendsArray) {
     const box = document.getElementById('friendsListBox');
     box.innerHTML = "";
@@ -372,14 +408,12 @@
     });
   }
 
-  // Fitur Pencarian Cepat di Daftar Teman
   window.filterFriendsList = function() {
     const keyword = document.getElementById('quickSearchInput').value.toLowerCase();
     const filtered = allFriendsData.filter(f => f.name.toLowerCase().includes(keyword));
     renderFriendsList(filtered);
   };
 
-  // Menu Tambahan untuk Teman
   window.openFriendMenu = function(friendKey, friendName) {
     const choice = prompt(`Menu Teman: ${friendName}\n1. Mulai Chat / Fokuskan\n2. Hapus Pertemanan\nPilih nomor menu (1 atau 2):`);
     if (choice === "1") {
@@ -412,7 +446,7 @@
     if (!localStream) return alert("Kamera belum siap!");
     
     const friendSnap = await get(child(ref(db), `friends/${myNameKey}/${friendKey}`));
-    if (!friendSnap.exists()) return alert("Anda harus konfirmasi pertemanan terlebih dahulu untuk video call!");
+    if (!friendSnap.exists()) return alert("Anda harus konfirmasi pertemanan terlebih dahulu!");
 
     document.getElementById('statusText').textContent = "Menghubungi teman...";
     currentChatFriendKey = friendKey;
@@ -426,6 +460,9 @@
 
   async function initCamera() {
     try {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
       localStream = await navigator.mediaDevices.getUserMedia({
         video: { width: 128, height: 128, frameRate: 8, facingMode: useFrontCamera ? "user" : "environment" },
         audio: true
@@ -435,6 +472,16 @@
       console.log("Izin kamera tertunda/ditolak.");
     }
   }
+
+  window.switchCamera = async function() {
+    useFrontCamera = !useFrontCamera;
+    await initCamera();
+    if (activeCall) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (sender) sender.replaceTrack(videoTrack);
+    }
+  };
 
   function handleCall(call) {
     activeCall = call;
@@ -487,7 +534,6 @@
     const track = localStream.getAudioTracks()[0];
     track.enabled = !track.enabled;
   };
-</script>
 
-</body>
-</html>
+  // --- Pendaftaran Service Worker ---
+  if ('serviceWorker' in navigato
