@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Video Call Room (Global Unique Name)</title>
+  <title>Video Call App with Friends & Notifications</title>
   
-  <!-- PWA Manifest Link -->
   <link rel="manifest" href="/i/manifest.json">
   <meta name="theme-color" content="#ffffff">
 
@@ -15,11 +14,16 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 15px; display: flex; justify-content: center; margin: 0; }
     .app-container { width: 100%; max-width: 360px; background: #fff; padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
-    h2 { text-align: center; color: #0f172a; font-size: 18px; margin: 0 0 12px 0; }
+    h2, h3 { text-align: center; color: #0f172a; margin: 0 0 10px 0; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 14px; margin-top: 15px; color: #334155; }
     
-    .room-control, .auth-section { display: flex; gap: 8px; margin-bottom: 12px; }
-    .room-control input, .auth-section input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
-    .room-control button, .auth-section button { padding: 10px 16px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .auth-section, .friend-control { display: flex; gap: 8px; margin-bottom: 12px; }
+    input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; }
+    button { padding: 10px 14px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    button.secondary { background: #0ea5e9; }
+    button.danger { background: #ef4444; }
+    button.success { background: #10b981; }
     
     .auth-container { border-bottom: 1px solid #e2e8f0; margin-bottom: 12px; padding-bottom: 12px; }
     .hidden { display: none !important; }
@@ -30,15 +34,15 @@
     video { width: 100%; height: 100%; object-fit: cover; }
     .video-label { position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.6); color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 8px; z-index: 2; }
 
-    /* Tombol Kontrol di Bagian Bawah Video */
     .media-controls { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
-    .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border: none; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; transition: 0.2s; }
+    .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border-radius: 6px; font-size: 11px; }
     .media-controls button.active { background: #ef4444; color: white; }
 
+    .list-box { max-height: 120px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 13px; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px; }
+    
     .chat-box { border-top: 1px solid #e2e8f0; padding-top: 10px; }
     .chat-input { display: flex; gap: 8px; }
-    .chat-input input { flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none; }
-    .chat-input button { padding: 8px 14px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
     .chat-log { margin-top: 8px; height: 60px; overflow-y: auto; font-size: 12px; color: #475569; display: flex; flex-direction: column; gap: 4px; }
     .status-text { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 8px; font-weight: 500; }
   </style>
@@ -48,24 +52,37 @@
 <div class="app-container">
   <h2>Video Call App</h2>
 
-  <!-- Bagian Pendaftaran Akun Nama Lengkap -->
+  <!-- Pendaftaran Akun -->
   <div id="authContainer" class="auth-container">
-    <div id="nameSection" class="auth-section">
-      <input type="text" id="fullNameInput" placeholder="Masukkan nama lengkap Anda..." onkeypress="if(event.key==='Enter') registerUser()">
+    <div class="auth-section">
+      <input type="text" id="fullNameInput" placeholder="Nama lengkap unik..." onkeypress="if(event.key==='Enter') registerUser()">
       <button id="btnRegister" onclick="registerUser()">Daftar</button>
     </div>
   </div>
   
-  <!-- Fitur Utama Video Call (Awalnya disembunyikan sebelum daftar) -->
+  <!-- Fitur Utama -->
   <div id="callMainContent" class="hidden">
-    <div class="room-control">
-      <input type="text" id="roomInput" placeholder="Kode room...">
-      <button onclick="joinRoom()">Masuk</button>
+    <div class="status-text" id="statusText">Status: Siap</div>
+
+    <!-- Panel Pertemanan -->
+    <div>
+      <div class="friend-control">
+        <input type="text" id="searchFriendInput" placeholder="Cari nama teman...">
+        <button class="secondary" onclick="sendFriendRequest()">Tambah</button>
+      </div>
+
+      <h3>Permintaan Pertemanan Masuk</h3>
+      <div id="incomingRequestsBox" class="list-box">
+        <div style="color: #94a3b8; text-align: center;">Tidak ada permintaan</div>
+      </div>
+
+      <h3>Daftar Teman</h3>
+      <div id="friendsListBox" class="list-box">
+        <div style="color: #94a3b8; text-align: center;">Belum ada teman</div>
+      </div>
     </div>
 
-    <div class="status-text" id="statusText">Ketuk 'Masuk' untuk aktifkan izin & kamera</div>
-
-    <!-- Tampilan Video -->
+    <!-- Tampilan Video Call -->
     <div class="video-grid">
       <div class="video-wrapper">
         <video id="videoRemote" autoplay playsinline></video>
@@ -77,7 +94,6 @@
       </div>
     </div>
 
-    <!-- Tombol Kontrol Kamera & Audio -->
     <div class="media-controls">
       <button id="btnToggleCam" onclick="toggleCamera()">Matikan Video</button>
       <button id="btnToggleMic" onclick="toggleAudio()">Matikan Audio</button>
@@ -94,10 +110,10 @@
   </div>
 </div>
 
-<!-- Firebase SDK & Logika Pendaftaran Database -->
+<!-- Firebase & PeerJS Logic -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase, ref, get, set, child, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCaWV3xAbJGYLWcrxZb9iii9BBV1SZU1TE",
@@ -113,193 +129,55 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // Fungsi Pendaftaran Akun Global (Cek duplikasi nama)
-  window.registerUser = async function() {
-    const rawName = document.getElementById('fullNameInput').value.trim();
-    if (!rawName) return alert("Masukkan nama lengkap terlebih dahulu!");
-
-    // Ubah format nama jadi huruf kecil/tanpa spasi berlebih untuk kunci database yang aman
-    const nameKey = rawName.toLowerCase().replace(/\s+/g, '_');
-    const btn = document.getElementById('btnRegister');
-    btn.disabled = true;
-    btn.textContent = "Memeriksa...";
-
-    try {
-      const dbRef = ref(db);
-      // Cek apakah nama sudah terdaftar di Firebase
-      const snapshot = await get(child(dbRef, `users/${nameKey}`));
-
-      if (snapshot.exists()) {
-        alert("Nama pengguna ini sudah terdaftar! Silakan gunakan nama lain.");
-        btn.disabled = false;
-        btn.textContent = "Daftar";
-        return;
-      }
-
-      // Jika belum terdaftar, simpan ke Firebase Realtime Database
-      await set(ref(db, `users/${nameKey}`), {
-        fullName: rawName,
-        registeredAt: new Date().toISOString()
-      });
-
-      // Simpan sesi di perangkat lokal browser
-      localStorage.setItem('userName', rawName);
-
-      alert("Pendaftaran berhasil, selamat datang " + rawName + "!");
-      document.getElementById('authContainer').classList.add('hidden');
-      document.getElementById('callMainContent').classList.remove('hidden');
-
-    } catch (error) {
-      console.error("Gagal mendaftar:", error);
-      alert("Terjadi kesalahan koneksi. Silakan coba lagi.");
-      btn.disabled = false;
-      btn.textContent = "Daftar";
-    }
-  };
-
-  // Cek apakah perangkat ini sudah pernah daftar sebelumnya
-  window.addEventListener('DOMContentLoaded', () => {
-    const savedName = localStorage.getItem('userName');
-    if (savedName) {
-      document.getElementById('authContainer').classList.add('hidden');
-      document.getElementById('callMainContent').classList.remove('hidden');
-    }
-  });
-</script>
-
-<script>
-  // Registrasi Service Worker PWA secara otomatis agar skor PWABuilder maksimal
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/i/sw.js')
-        .then(reg => console.log('ServiceWorker registered!', reg))
-        .catch(err => console.log('ServiceWorker registration failed: ', err));
-    });
-  }
-
+  let myNameKey = "";
+  let rawMyName = "";
   let peer, localStream, activeCall, activeConnection;
   let useFrontCamera = true;
   let isSwitching = false;
 
-  const lowDataConstraints = {
-    video: { 
-      width: { ideal: 128 }, 
-      height: { ideal: 128 }, 
-      frameRate: { ideal: 7, max: 8 } 
-    },
-    audio: { 
-      echoCancellation: true, 
-      noiseSuppression: true,
-      sampleRate: 16000 
+  window.registerUser = async function() {
+    rawMyName = document.getElementById('fullNameInput').value.trim();
+    if (!rawMyName) return alert("Masukkan nama terlebih dahulu!");
+
+    myNameKey = rawMyName.toLowerCase().replace(/\s+/g, '_');
+    const dbRef = ref(db);
+
+    try {
+      const snapshot = await get(child(dbRef, `users/${myNameKey}`));
+      if (snapshot.exists()) {
+        alert("Nama sudah terdaftar! Pilih nama lain.");
+        return;
+      }
+
+      await set(ref(db, `users/${myNameKey}`), { fullName: rawMyName });
+      localStorage.setItem('userName', rawMyName);
+      
+      initAppSession();
+    } catch (err) {
+      alert("Gagal mendaftar. Coba lagi.");
     }
   };
 
-  async function initCamera() {
-    if (isSwitching) return;
-    isSwitching = true;
-    try {
-      const constraints = {
-        ...lowDataConstraints,
-        video: {
-          ...lowDataConstraints.video,
-          facingMode: useFrontCamera ? "user" : "environment"
-        }
-      };
-
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-
-      localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      document.getElementById('videoLocal').srcObject = localStream;
-      
-      if (activeCall && activeCall.peerConnection) {
-        const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(localStream.getVideoTracks()[0]);
-        }
-      }
-      document.getElementById('statusText').textContent = "Kamera aktif, siap terhubung.";
-    } catch (err) {
-      console.error("Gagal akses kamera:", err);
-      document.getElementById('statusText').textContent = "Izin kamera ditolak / blokir WebView.";
-    } finally {
-      isSwitching = false;
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('userName');
+    if (saved) {
+      rawMyName = saved;
+      myNameKey = saved.toLowerCase().replace(/\s+/g, '_');
+      initAppSession();
     }
+  });
+
+  function initAppSession() {
+    document.getElementById('authContainer').classList.add('hidden');
+    document.getElementById('callMainContent').classList.remove('hidden');
+    initPeerJS();
+    listenToDatabase();
+    initCamera();
   }
 
-  async function switchCamera() {
-    useFrontCamera = !useFrontCamera;
-    await initCamera();
-  }
-
-  function toggleCamera() {
-    if (!localStream) return;
-    const videoTrack = localStream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      const btn = document.getElementById('btnToggleCam');
-      if (videoTrack.enabled) {
-        btn.textContent = "Matikan Video";
-        btn.classList.remove('active');
-      } else {
-        btn.textContent = "Buka Video";
-        btn.classList.add('active');
-      }
-    }
-  }
-
-  function toggleAudio() {
-    if (!localStream) return;
-    const audioTrack = localStream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      const btn = document.getElementById('btnToggleMic');
-      if (audioTrack.enabled) {
-        btn.textContent = "Matikan Audio";
-        btn.classList.remove('active');
-      } else {
-        btn.textContent = "Buka Audio";
-        btn.classList.add('active');
-      }
-    }
-  }
-
-  async function joinRoom() {
-    const code = document.getElementById('roomInput').value.trim();
-    if (!code) return alert("Masukkan kode room terlebih dahulu!");
-    
-    await initCamera();
-    if (!localStream) return;
-
-    document.getElementById('statusText').textContent = "Menghubungkan ke room...";
-
-    if (peer) peer.destroy();
-    
-    peer = new Peer("room_" + code, {
+  function initPeerJS() {
+    peer = new Peer(myNameKey, {
       config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
-    });
-
-    peer.on('error', (err) => {
-      if (err.type === 'unavailable-id') {
-        const clientPeer = new Peer({
-          config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
-        });
-        
-        clientPeer.on('open', () => {
-          peer = clientPeer;
-          const call = clientPeer.call("room_" + code, localStream);
-          handleCall(call);
-          activeConnection = clientPeer.connect("room_" + code);
-          setupChat(activeConnection);
-        });
-      } else {
-        document.getElementById('statusText').textContent = "Koneksi gagal, coba lagi.";
-      }
-    });
-
-    peer.on('open', () => {
-      document.getElementById('statusText').textContent = "Menunggu lawan bicara...";
     });
 
     peer.on('call', (call) => {
@@ -313,15 +191,114 @@
     });
   }
 
+  // Kirim Permintaan Pertemanan
+  window.sendFriendRequest = async function() {
+    const targetName = document.getElementById('searchFriendInput').value.trim();
+    const targetKey = targetName.toLowerCase().replace(/\s+/g, '_');
+
+    if (!targetName || targetKey === myNameKey) return alert("Masukkan nama teman yang valid!");
+
+    const dbRef = ref(db);
+    const userSnap = await get(child(dbRef, `users/${targetKey}`));
+    if (!userSnap.exists()) return alert("Pengguna tidak ditemukan!");
+
+    // Simpan ke daftar request target
+    await set(ref(db, `requests/${targetKey}/${myNameKey}`), { name: rawMyName });
+    alert("Permintaan pertemanan dikirim!");
+    document.getElementById('searchFriendInput').value = "";
+  };
+
+  // Dengarkan Database untuk Notifikasi & Pertemanan
+  function listenToDatabase() {
+    // Listener Permintaan Masuk
+    onValue(ref(db, `requests/${myNameKey}`), (snapshot) => {
+      const box = document.getElementById('incomingRequestsBox');
+      box.innerHTML = "";
+      if (!snapshot.exists()) {
+        box.innerHTML = `<div style="color: #94a3b8; text-align: center;">Tidak ada permintaan</div>`;
+        return;
+      }
+
+      snapshot.forEach((childSnap) => {
+        const senderKey = childSnap.key;
+        const senderName = childSnap.val().name;
+        box.innerHTML += `
+          <div class="list-item">
+            <span>${senderName}</span>
+            <div>
+              <button class="success" onclick="acceptFriend('${senderKey}', '${senderName}')">Terima</button>
+              <button class="danger" onclick="rejectFriend('${senderKey}')">Tolak</button>
+            </div>
+          </div>`;
+      });
+    });
+
+    // Listener Daftar Teman
+    onValue(ref(db, `friends/${myNameKey}`), (snapshot) => {
+      const box = document.getElementById('friendsListBox');
+      box.innerHTML = "";
+      if (!snapshot.exists()) {
+        box.innerHTML = `<div style="color: #94a3b8; text-align: center;">Belum ada teman</div>`;
+        return;
+      }
+
+      snapshot.forEach((childSnap) => {
+        const friendKey = childSnap.key;
+        const friendName = childSnap.val().name;
+        box.innerHTML += `
+          <div class="list-item">
+            <span><b>${friendName}</b></span>
+            <button class="success" onclick="callFriend('${friendKey}')">Video Call</button>
+          </div>`;
+      });
+    });
+  }
+
+  window.acceptFriend = async function(friendKey, friendName) {
+    // Tambahkan ke teman masing-masing
+    await set(ref(db, `friends/${myNameKey}/${friendKey}`), { name: friendName });
+    await set(ref(db, `friends/${friendKey}/${myNameKey}`), { name: rawMyName });
+    // Hapus dari request
+    await remove(ref(db, `requests/${myNameKey}/${friendKey}`));
+  };
+
+  window.rejectFriend = async function(friendKey) {
+    await remove(ref(db, `requests/${myNameKey}/${friendKey}`));
+  };
+
+  // Panggil Teman (Video Call Privat)
+  window.callFriend = function(friendKey) {
+    if (!localStream) return alert("Kamera belum siap!");
+    document.getElementById('statusText').textContent = "Menghubungi teman...";
+
+    const call = peer.call(friendKey, localStream);
+    handleCall(call);
+
+    activeConnection = peer.connect(friendKey);
+    setupChat(activeConnection);
+  };
+
+  // Kode Kamera & Video Tetap Standar
+  async function initCamera() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 128, height: 128, frameRate: 8, facingMode: useFrontCamera ? "user" : "environment" },
+        audio: true
+      });
+      document.getElementById('videoLocal').srcObject = localStream;
+    } catch (err) {
+      alert("Izin kamera ditolak!");
+    }
+  }
+
   function handleCall(call) {
     activeCall = call;
     call.on('stream', (stream) => {
       document.getElementById('videoRemote').srcObject = stream;
       document.getElementById('statusText').textContent = "Terhubung!";
     });
-
     call.on('close', () => {
-      document.getElementById('statusText').textContent = "Lawan bicara keluar.";
+      document.getElementById('statusText').textContent = "Panggilan berakhir.";
       document.getElementById('videoRemote').srcObject = null;
     });
   }
@@ -330,25 +307,27 @@
     conn.on('data', (data) => {
       const log = document.getElementById('chatLog');
       log.innerHTML += `<div>Teman: ${data}</div>`;
-      log.scrollTop = log.scrollHeight;
-    });
-    
-    conn.on('close', () => {
-      const log = document.getElementById('chatLog');
-      log.innerHTML += `<div style="color: #ef4444;">Koneksi chat terputus.</div>`;
     });
   }
 
-  function sendMessage() {
+  window.sendMessage = function() {
     const input = document.getElementById('msgInput');
-    const myName = localStorage.getItem('userName') || "Seseorang";
     if (activeConnection && input.value) {
-      const fullMessage = `${myName}: ${input.value}`;
-      activeConnection.send(fullMessage);
-      document.getElementById('chatLog').innerHTML += `<div>Anda: ${fullMessage}</div>`;
+      activeConnection.send(input.value);
+      document.getElementById('chatLog').innerHTML += `<div>Anda: ${input.value}</div>`;
       input.value = "";
     }
-  }
+  };
+
+  window.toggleCamera = () => {
+    const track = localStream.getVideoTracks()[0];
+    track.enabled = !track.enabled;
+  };
+
+  window.toggleAudio = () => {
+    const track = localStream.getAudioTracks()[0];
+    track.enabled = !track.enabled;
+  };
 </script>
 
 </body>
