@@ -544,4 +544,159 @@
     friendsArray.forEach((friend) => {
       const callBtn = document.getElementById(`call_${friend.key}`);
       const menuBtn = document.getElementById(`menu_${friend.key}`);
-      i
+      if (callBtn) callBtn.onclick = () => startCall(friend.key);
+      if (menuBtn) menuBtn.onclick = () => {
+        currentChatFriendKey = friend.key;
+        alert(`Terpilih teman: ${friend.name}`);
+      };
+    });
+  }
+
+  function filterFriendsList() {
+    const keyword = document.getElementById('quickSearchInput').value.toLowerCase();
+    const filtered = allFriendsData.filter(f => f.name.toLowerCase().includes(keyword));
+    renderFriendsList(filtered);
+  }
+
+  function acceptFriend(senderKey, senderName) {
+    set(ref(db, `friends/${myNameKey}/${senderKey}`), { name: senderName });
+    set(ref(db, `friends/${senderKey}/${myNameKey}`), { name: rawMyName });
+    remove(ref(db, `requests/${myNameKey}/${senderKey}`));
+  }
+
+  function rejectFriend(senderKey) {
+    remove(ref(db, `requests/${myNameKey}/${senderKey}`));
+  }
+
+  async function initCamera() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const localVideo = document.getElementById('videoLocal');
+      if (localVideo) {
+        localVideo.srcObject = localStream;
+      }
+    } catch (err) {
+      console.error("Gagal mengakses kamera/mikrofon:", err);
+    }
+  }
+
+  function toggleCamera() {
+    if (!localStream) return;
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      const btn = document.getElementById('btnToggleCam');
+      btn.textContent = videoTrack.enabled ? "Matikan Video" : "Nyalakan Video";
+      btn.classList.toggle('active', !videoTrack.enabled);
+    }
+  }
+
+  function toggleAudio() {
+    if (!localStream) return;
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      const btn = document.getElementById('btnToggleMic');
+      btn.textContent = audioTrack.enabled ? "Matikan Audio" : "Nyalakan Audio";
+      btn.classList.toggle('active', !audioTrack.enabled);
+    }
+  }
+
+  async function switchCamera() {
+    if (!localStream) return;
+    useFrontCamera = !useFrontCamera;
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) videoTrack.stop();
+
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: useFrontCamera ? 'user' : 'environment' },
+        audio: true
+      });
+      document.getElementById('videoLocal').srcObject = localStream;
+    } catch (err) {
+      console.error("Gagal mengganti kamera:", err);
+    }
+  }
+
+  function startCall(friendKey) {
+    if (!localStream) {
+      alert("Kamera belum siap!");
+      return;
+    }
+    const call = peer.call(friendKey, localStream);
+    handleCall(call);
+    currentChatFriendKey = friendKey;
+    document.getElementById('statusText').textContent = "Memanggil...";
+  }
+
+  function handleCall(call) {
+    activeCall = call;
+    document.getElementById('btnEndCall').classList.remove('hidden');
+
+    call.on('stream', (remoteStream) => {
+      document.getElementById('videoRemote').srcObject = remoteStream;
+      document.getElementById('statusText').textContent = "Terhubung";
+    });
+
+    call.on('close', () => {
+      endCallCleanUp();
+    });
+
+    const conn = peer.connect(call.peer);
+    activeConnection = conn;
+    setupChat(conn);
+  }
+
+  function endCall() {
+    if (activeCall) {
+      activeCall.close();
+    }
+    if (activeConnection) {
+      activeConnection.close();
+    }
+    endCallCleanUp();
+  }
+
+  function endCallCleanUp() {
+    if (document.getElementById('videoRemote')) {
+      document.getElementById('videoRemote').srcObject = null;
+    }
+    document.getElementById('btnEndCall').classList.add('hidden');
+    document.getElementById('statusText').textContent = "Status: Siap";
+    activeCall = null;
+    activeConnection = null;
+    incomingCallInstance = null;
+  }
+
+  function setupChat(conn) {
+    conn.on('data', (data) => {
+      appendChatMessage(data.sender, data.message);
+    });
+  }
+
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
+    if (!input) return;
+    const msg = input.value.trim();
+    if (!msg || !currentChatFriendKey) return;
+
+    if (activeConnection && activeConnection.open) {
+      activeConnection.send({ sender: rawMyName, message: msg });
+      appendChatMessage("Anda", msg);
+      input.value = "";
+    } else {
+      alert("Belum terhubung dalam panggilan/koneksi aktif dengan teman!");
+    }
+  }
+
+  function appendChatMessage(sender, message) {
+    const log = document.getElementById('chatLog');
+    if (!log) return;
+    log.innerHTML += `<div><b>${sender}:</b> ${message}</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
