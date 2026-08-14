@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Video Call Room (Simple Name Login)</title>
+  <title>Video Call Room (Global Unique Name)</title>
   
   <!-- PWA Manifest Link -->
   <link rel="manifest" href="/i/manifest.json">
@@ -48,15 +48,15 @@
 <div class="app-container">
   <h2>Video Call App</h2>
 
-  <!-- Bagian Login Nama Lengkap Sederhana -->
+  <!-- Bagian Pendaftaran Akun Nama Lengkap -->
   <div id="authContainer" class="auth-container">
     <div id="nameSection" class="auth-section">
-      <input type="text" id="fullNameInput" placeholder="Masukkan nama lengkap Anda..." onkeypress="if(event.key==='Enter') loginWithName()">
-      <button onclick="loginWithName()">Masuk</button>
+      <input type="text" id="fullNameInput" placeholder="Masukkan nama lengkap Anda..." onkeypress="if(event.key==='Enter') registerUser()">
+      <button id="btnRegister" onclick="registerUser()">Daftar</button>
     </div>
   </div>
   
-  <!-- Fitur Utama Video Call (Awalnya disembunyikan sebelum login) -->
+  <!-- Fitur Utama Video Call (Awalnya disembunyikan sebelum daftar) -->
   <div id="callMainContent" class="hidden">
     <div class="room-control">
       <input type="text" id="roomInput" placeholder="Kode room...">
@@ -94,8 +94,70 @@
   </div>
 </div>
 
-<script>
-  // Cek apakah pengguna sudah pernah memasukkan nama sebelumnya saat halaman dimuat
+<!-- Firebase SDK & Logika Pendaftaran Database -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCaWV3xAbJGYLWcrxZb9iii9BBV1SZU1TE",
+    authDomain: "kamal-60b2c.firebaseapp.com",
+    databaseURL: "https://kamal-60b2c-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "kamal-60b2c",
+    storageBucket: "kamal-60b2c.firebasestorage.app",
+    messagingSenderId: "186271118190",
+    appId: "1:186271118190:web:d925792b930bec2090077f",
+    measurementId: "G-6SFKJBPH7T"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Fungsi Pendaftaran Akun Global (Cek duplikasi nama)
+  window.registerUser = async function() {
+    const rawName = document.getElementById('fullNameInput').value.trim();
+    if (!rawName) return alert("Masukkan nama lengkap terlebih dahulu!");
+
+    // Ubah format nama jadi huruf kecil/tanpa spasi berlebih untuk kunci database yang aman
+    const nameKey = rawName.toLowerCase().replace(/\s+/g, '_');
+    const btn = document.getElementById('btnRegister');
+    btn.disabled = true;
+    btn.textContent = "Memeriksa...";
+
+    try {
+      const dbRef = ref(db);
+      // Cek apakah nama sudah terdaftar di Firebase
+      const snapshot = await get(child(dbRef, `users/${nameKey}`));
+
+      if (snapshot.exists()) {
+        alert("Nama pengguna ini sudah terdaftar! Silakan gunakan nama lain.");
+        btn.disabled = false;
+        btn.textContent = "Daftar";
+        return;
+      }
+
+      // Jika belum terdaftar, simpan ke Firebase Realtime Database
+      await set(ref(db, `users/${nameKey}`), {
+        fullName: rawName,
+        registeredAt: new Date().toISOString()
+      });
+
+      // Simpan sesi di perangkat lokal browser
+      localStorage.setItem('userName', rawName);
+
+      alert("Pendaftaran berhasil, selamat datang " + rawName + "!");
+      document.getElementById('authContainer').classList.add('hidden');
+      document.getElementById('callMainContent').classList.remove('hidden');
+
+    } catch (error) {
+      console.error("Gagal mendaftar:", error);
+      alert("Terjadi kesalahan koneksi. Silakan coba lagi.");
+      btn.disabled = false;
+      btn.textContent = "Daftar";
+    }
+  };
+
+  // Cek apakah perangkat ini sudah pernah daftar sebelumnya
   window.addEventListener('DOMContentLoaded', () => {
     const savedName = localStorage.getItem('userName');
     if (savedName) {
@@ -103,17 +165,9 @@
       document.getElementById('callMainContent').classList.remove('hidden');
     }
   });
+</script>
 
-  // Fungsi Login Menggunakan Nama Lengkap
-  function loginWithName() {
-    const name = document.getElementById('fullNameInput').value.trim();
-    if (!name) return alert("Masukkan nama lengkap terlebih dahulu!");
-
-    localStorage.setItem('userName', name);
-    document.getElementById('authContainer').classList.add('hidden');
-    document.getElementById('callMainContent').classList.remove('hidden');
-  }
-
+<script>
   // Registrasi Service Worker PWA secara otomatis agar skor PWABuilder maksimal
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
