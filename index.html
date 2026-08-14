@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Video Call Room (WebView Ready & Stable)</title>
   
+  <!-- PWA Manifest Link -->
+  <link rel="manifest" href="/i/manifest.json">
+  <meta name="theme-color" content="#ffffff">
+
   <!-- PeerJS Library -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
@@ -76,6 +80,15 @@
 </div>
 
 <script>
+  // Registrasi Service Worker PWA secara otomatis agar skor PWABuilder maksimal
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/i/sw.js')
+        .then(reg => console.log('ServiceWorker registered!', reg))
+        .catch(err => console.log('ServiceWorker registration failed: ', err));
+    });
+  }
+
   let peer, localStream, activeCall, activeConnection;
   let useFrontCamera = true;
   let isSwitching = false;
