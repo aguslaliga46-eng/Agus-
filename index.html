@@ -55,6 +55,12 @@
 
     .hidden { display: none !important; }
 
+    /* Panel Panggilan Masuk (Modal / Box Interaktif) */
+    .incoming-call-box { background: #e0f2fe; border: 2px solid #0ea5e9; padding: 12px; border-radius: 10px; margin-bottom: 12px; text-align: center; }
+    .incoming-call-box p { margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #0369a1; }
+    .incoming-actions { display: flex; gap: 8px; justify-content: center; }
+    .incoming-actions button { flex: 1; padding: 8px; }
+
     /* Tampilan Video 90x90 */
     .video-grid { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
     .video-wrapper { position: relative; width: 90px; height: 90px; background: #1e293b; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
@@ -117,6 +123,15 @@
   <!-- Fitur Utama -->
   <div id="callMainContent" class="hidden">
     <div class="status-text" id="statusText">Status: Siap</div>
+
+    <!-- Kotak Panggilan Masuk (Terima / Tolak) -->
+    <div id="incomingCallContainer" class="incoming-call-box hidden">
+      <p id="incomingCallerText">Panggilan masuk dari Teman</p>
+      <div class="incoming-actions">
+        <button class="success" id="btnAcceptCall">Terima</button>
+        <button class="danger" id="btnRejectCall">Tolak</button>
+      </div>
+    </div>
 
     <!-- Panel Pertemanan -->
     <div>
@@ -191,18 +206,17 @@
   let myNameKey = "";
   let rawMyName = "";
   let peer, localStream, activeCall, activeConnection;
+  let incomingCallInstance = null; // Menyimpan instance panggilan masuk sementara
   let useFrontCamera = true;
   let currentChatFriendKey = null;
   let allFriendsData = [];
 
-  // Minta Izin Notifikasi Browser Saat Pertama Kali
   function requestNotificationPermission() {
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
   }
 
-  // Suara & Notifikasi Layar (Web Notification + Audio Cling)
   function playClingSound() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -222,8 +236,6 @@
 
   function triggerBackgroundNotification(callerName) {
     playClingSound();
-    
-    // Munculkan Native Notification di HP/Desktop
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification("Panggilan Video Masuk!", {
         body: `${callerName} sedang menelepon Anda.`,
@@ -232,7 +244,6 @@
     }
   }
 
-  // Pengaturan Event Listener Tombol
   document.addEventListener('DOMContentLoaded', () => {
     requestNotificationPermission();
 
@@ -265,8 +276,11 @@
     document.getElementById('btnToggleMic').addEventListener('click', toggleAudio);
     document.getElementById('btnSwitchCam').addEventListener('click', switchCamera);
     
-    // Tombol Akhiri Panggilan
     document.getElementById('btnEndCall').addEventListener('click', endCall);
+
+    // Tombol Terima & Tolak Call Masuk
+    document.getElementById('btnAcceptCall').addEventListener('click', acceptIncomingCall);
+    document.getElementById('btnRejectCall').addEventListener('click', rejectIncomingCall);
   });
 
   async function registerUser() {
@@ -337,18 +351,49 @@
         call.close();
         return;
       }
+      
+      incomingCallInstance = call;
       const callerName = friendSnap.val().name || call.peer;
+      
       triggerBackgroundNotification(callerName);
 
-      call.answer(localStream);
-      handleCall(call);
-      currentChatFriendKey = call.peer;
+      // Tampilkan Box Terima/Tolak Panggilan
+      document.getElementById('incomingCallerText').textContent = `${callerName} sedang menelepon...`;
+      document.getElementById('incomingCallContainer').classList.remove('hidden');
+      document.getElementById('statusText').textContent = "Panggilan Masuk...";
     });
 
     peer.on('connection', (conn) => {
       activeConnection = conn;
       setupChat(conn);
     });
+  }
+
+  // Aksi Menerima Panggilan Masuk
+  function acceptIncomingCall() {
+    if (!incomingCallInstance) return;
+    
+    if (!localStream) {
+      alert("Kamera belum siap, harap tunggu sebentar.");
+      return;
+    }
+
+    incomingCallInstance.answer(localStream);
+    handleCall(incomingCallInstance);
+    currentChatFriendKey = incomingCallInstance.peer;
+
+    // Sembunyikan panel call masuk
+    document.getElementById('incomingCallContainer').classList.add('hidden');
+  }
+
+  // Aksi Menolak Panggilan Masuk
+  function rejectIncomingCall() {
+    if (incomingCallInstance) {
+      incomingCallInstance.close();
+      incomingCallInstance = null;
+    }
+    document.getElementById('incomingCallContainer').classList.add('hidden');
+    document.getElementById('statusText').textContent = "Status: Siap";
   }
 
   async function sendFriendRequest() {
@@ -462,133 +507,4 @@
   }
 
   async function acceptFriend(friendKey, friendName) {
-    await set(ref(db, `friends/${myNameKey}/${friendKey}`), { name: friendName });
-    await set(ref(db, `friends/${friendKey}/${myNameKey}`), { name: rawMyName });
-    await remove(ref(db, `requests/${myNameKey}/${friendKey}`));
-  }
-
-  async function rejectFriend(friendKey) {
-    await remove(ref(db, `requests/${myNameKey}/${friendKey}`));
-  }
-
-  async function callFriend(friendKey) {
-    if (!localStream) return alert("Kamera belum siap!");
-    
-    const friendSnap = await get(child(ref(db), `friends/${myNameKey}/${friendKey}`));
-    if (!friendSnap.exists()) return alert("Anda harus konfirmasi pertemanan terlebih dahulu!");
-
-    document.getElementById('statusText').textContent = "Menghubungi teman...";
-    currentChatFriendKey = friendKey;
-
-    const call = peer.call(friendKey, localStream);
-    handleCall(call);
-
-    activeConnection = peer.connect(friendKey);
-    setupChat(activeConnection);
-  }
-
-  async function initCamera() {
-    try {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 128, height: 128, frameRate: 8, facingMode: useFrontCamera ? "user" : "environment" },
-        audio: true
-      });
-      document.getElementById('videoLocal').srcObject = localStream;
-    } catch (err) {
-      console.log("Izin kamera tertunda/ditolak.");
-    }
-  }
-
-  async function switchCamera() {
-    useFrontCamera = !useFrontCamera;
-    await initCamera();
-    if (activeCall) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-      if (sender) sender.replaceTrack(videoTrack);
-    }
-  }
-
-  function handleCall(call) {
-    activeCall = call;
-    document.getElementById('btnEndCall').classList.remove('hidden');
-
-    call.on('stream', (stream) => {
-      document.getElementById('videoRemote').srcObject = stream;
-      document.getElementById('statusText').textContent = "Terhubung!";
-    });
-
-    call.on('close', () => {
-      resetCallUI();
-    });
-  }
-
-  // Fungsi Akhiri Panggilan
-  function endCall() {
-    if (activeCall) {
-      activeCall.close();
-    }
-    resetCallUI();
-  }
-
-  function resetCallUI() {
-    if (activeCall) {
-      activeCall = null;
-    }
-    document.getElementById('videoRemote').srcObject = null;
-    document.getElementById('statusText').textContent = "Status: Siap";
-    document.getElementById('btnEndCall').classList.add('hidden');
-  }
-
-  function setupChat(conn) {
-    conn.on('data', (data) => {
-      const log = document.getElementById('chatLog');
-      log.innerHTML += `<div>Teman: ${data}</div>`;
-    });
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById('msgInput');
-    const msgText = input.value.trim();
-    if (!msgText) return;
-
-    if (!currentChatFriendKey) {
-      return alert("Pilih menu teman terlebih dahulu untuk mulai mengirim pesan!");
-    }
-
-    if (!activeConnection || activeConnection.peer !== currentChatFriendKey) {
-      activeConnection = peer.connect(currentChatFriendKey);
-      setupChat(activeConnection);
-      setTimeout(() => {
-        activeConnection.send(msgText);
-      }, 500);
-    } else {
-      activeConnection.send(msgText);
-    }
-
-    document.getElementById('chatLog').innerHTML += `<div>Anda: ${msgText}</div>`;
-    input.value = "";
-  }
-
-  function toggleCamera() {
-    const track = localStream.getVideoTracks()[0];
-    track.enabled = !track.enabled;
-    const btn = document.getElementById('btnToggleCam');
-    btn.classList.toggle('active', !track.enabled);
-    btn.textContent = track.enabled ? "Matikan Video" : "Nyalakan Video";
-  }
-
-  function toggleAudio() {
-    const track = localStream.getAudioTracks()[0];
-    track.enabled = !track.enabled;
-    const btn = document.getElementById('btnToggleMic');
-    btn.classList.toggle('active', !track.enabled);
-    btn.textContent = track.enabled ? "Matikan Audio" : "Nyalakan Audio";
-  }
-</script>
-
-</body>
-</html>
+    await set(ref(db, `friends/${myN
