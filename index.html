@@ -499,10 +499,9 @@
       });
       snapshot.forEach((childSnap) => {
         const senderKey = childSnap.key;
-        const senderName = childSnap.val().name;
         const acceptBtn = document.getElementById(`accept_${senderKey}`);
         const rejectBtn = document.getElementById(`reject_${senderKey}`);
-        if (acceptBtn) acceptBtn.onclick = () => acceptFriend(senderKey, senderName);
+        if (acceptBtn) acceptBtn.onclick = () => acceptFriend(senderKey, childSnap.val().name);
         if (rejectBtn) rejectBtn.onclick = () => rejectFriend(senderKey);
       });
     });
@@ -544,4 +543,5 @@
 
     friendsArray.forEach((friend) => {
       const callBtn = document.getElementById(`call_${friend.key}`);
-      const menuBtn = document.getEle
+      const menuBtn = document.getElementById(`menu_${friend.key}`);
+      i
