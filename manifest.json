@@ -9,5 +9,17 @@
   "start_url": "/i/",
   "theme_color": "#ffffff",
   "id": "123vidiocall",
-  "description": "Video call 1mb"
+  "description": "Video call 1mb",
+  "icons": [
+    {
+      "src": "/i/192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/i/512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
