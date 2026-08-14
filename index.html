@@ -61,9 +61,12 @@
     video { width: 100%; height: 100%; object-fit: cover; }
     .video-label { position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.6); color: #fff; padding: 1px 4px; border-radius: 3px; font-size: 8px; z-index: 2; }
 
-    .media-controls { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+    .media-controls { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
     .media-controls button { flex: 1; padding: 8px 4px; background: #e2e8f0; color: #334155; border-radius: 6px; font-size: 11px; font-weight: normal; }
     .media-controls button.active { background: #ef4444; color: white; }
+
+    .call-action-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+    .call-action-controls button { flex: 1; }
 
     .list-box { max-height: 120px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 13px; }
     .list-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px; }
@@ -156,6 +159,11 @@
       <button id="btnSwitchCam">Putar Kamera</button>
     </div>
 
+    <!-- Kontrol Akhiri Panggilan -->
+    <div class="call-action-controls">
+      <button id="btnEndCall" class="danger hidden">Akhiri Panggilan</button>
+    </div>
+
     <div class="chat-box">
       <div class="chat-input">
         <input type="text" id="msgInput" placeholder="Pesan...">
@@ -187,7 +195,14 @@
   let currentChatFriendKey = null;
   let allFriendsData = [];
 
-  // Suara & Notifikasi Latar Belakang
+  // Minta Izin Notifikasi Browser Saat Pertama Kali
+  function requestNotificationPermission() {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }
+
+  // Suara & Notifikasi Layar (Web Notification + Audio Cling)
   function playClingSound() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -207,18 +222,20 @@
 
   function triggerBackgroundNotification(callerName) {
     playClingSound();
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SHOW_NOTIFICATION',
-        title: 'Panggilan Video Masuk!',
-        body: `${callerName} sedang menelepon Anda.`
+    
+    // Munculkan Native Notification di HP/Desktop
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Panggilan Video Masuk!", {
+        body: `${callerName} sedang menelepon Anda.`,
+        icon: "https://cdn-icons-png.flaticon.com/512/3067/3067403.png"
       });
     }
   }
 
-  // Pengaturan Event Listener Tombol (Aman dari Error Scope)
+  // Pengaturan Event Listener Tombol
   document.addEventListener('DOMContentLoaded', () => {
-    // Cek Sesi Tersimpan
+    requestNotificationPermission();
+
     const saved = localStorage.getItem('userName');
     if (saved) {
       rawMyName = saved;
@@ -226,7 +243,6 @@
       initAppSession();
     }
 
-    // Switch Form Auth
     document.getElementById('toLoginMode').addEventListener('click', () => {
       document.getElementById('registerForm').classList.add('hidden');
       document.getElementById('loginForm').classList.remove('hidden');
@@ -236,21 +252,21 @@
       document.getElementById('registerForm').classList.remove('hidden');
     });
 
-    // Tombol Auth
     document.getElementById('btnRegister').addEventListener('click', registerUser);
     document.getElementById('btnLogin').addEventListener('click', loginUser);
     document.getElementById('btnLogout').addEventListener('click', logoutUser);
 
-    // Tombol Pertemanan & Chat
     document.getElementById('btnAddFriend').addEventListener('click', sendFriendRequest);
     document.getElementById('quickSearchInput').addEventListener('input', filterFriendsList);
     document.getElementById('btnSendMsg').addEventListener('click', sendMessage);
     document.getElementById('msgInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 
-    // Tombol Media & Kamera
     document.getElementById('btnToggleCam').addEventListener('click', toggleCamera);
     document.getElementById('btnToggleMic').addEventListener('click', toggleAudio);
     document.getElementById('btnSwitchCam').addEventListener('click', switchCamera);
+    
+    // Tombol Akhiri Panggilan
+    document.getElementById('btnEndCall').addEventListener('click', endCall);
   });
 
   async function registerUser() {
@@ -373,7 +389,6 @@
             </div>
           </div>`;
       });
-      // Berikan event listener dinamis untuk tombol terima/tolak pertemanan
       snapshot.forEach((childSnap) => {
         const senderKey = childSnap.key;
         const senderName = childSnap.val().name;
@@ -416,7 +431,6 @@
         </div>`;
     });
 
-    // Tambahkan event listener untuk tombol dinamis di daftar teman
     friendsArray.forEach((friend) => {
       document.getElementById(`call_${friend.key}`).onclick = () => callFriend(friend.key);
       document.getElementById(`menu_${friend.key}`).onclick = () => openFriendMenu(friend.key, friend.name);
@@ -500,14 +514,33 @@
 
   function handleCall(call) {
     activeCall = call;
+    document.getElementById('btnEndCall').classList.remove('hidden');
+
     call.on('stream', (stream) => {
       document.getElementById('videoRemote').srcObject = stream;
       document.getElementById('statusText').textContent = "Terhubung!";
     });
+
     call.on('close', () => {
-      document.getElementById('statusText').textContent = "Panggilan berakhir.";
-      document.getElementById('videoRemote').srcObject = null;
+      resetCallUI();
     });
+  }
+
+  // Fungsi Akhiri Panggilan
+  function endCall() {
+    if (activeCall) {
+      activeCall.close();
+    }
+    resetCallUI();
+  }
+
+  function resetCallUI() {
+    if (activeCall) {
+      activeCall = null;
+    }
+    document.getElementById('videoRemote').srcObject = null;
+    document.getElementById('statusText').textContent = "Status: Siap";
+    document.getElementById('btnEndCall').classList.add('hidden');
   }
 
   function setupChat(conn) {
@@ -554,13 +587,6 @@
     const btn = document.getElementById('btnToggleMic');
     btn.classList.toggle('active', !track.enabled);
     btn.textContent = track.enabled ? "Matikan Audio" : "Nyalakan Audio";
-  }
-
-  // Pendaftaran Service Worker
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    });
   }
 </script>
 
